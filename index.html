@@ -871,6 +871,12 @@ window._luBooting = true;          // (no lineup saving until the whole game has
 const PINPOINT_V2 = true;          // pinpoint pitching on phones: a smaller pad up top, the stick reaches the dots easily (it used to score 0% because a full push went past the green dot), and the pitcher goes into his windup while you trace, letting it go when you finish
 const VOICE_RETRY = true;          // announcers: if the chosen voice doesn't talk, the same line is tried again right away with the phone's own default voice (it used to give up on the phone voice for the whole game after one miss)
 </script>
+<script>
+// ================= v1.82 · true = on, false = how it was =================
+const TAP_OFFSET_FIX = true;       // phones: after typing in a box (Workshop search, names) the screen could stay shifted, so taps landed off to the side. Now it snaps back, and text boxes use a size that doesn't make the iPhone zoom in
+const GOOFY_VOICES = true;         // with JOKE_VOICES on: if the phone has no joke voices (or they don't work), each announcer gets the normal voice with a silly pitch and speed instead (chipmunk, giant, robot...), new every game
+const WATCH_FULL_GAME = true;      // menu: "📺 Watch Full Game" next to Create-A-Bart. A CPU vs CPU game like it's on TV: center field camera, a real score bug (score, inning, bases, count, outs, pitch count, pitch speed), the batter's name and his day so far, a pitch tracker, inning cards, and the announcers calling it
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -878,7 +884,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.81'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.82'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -12181,6 +12187,94 @@ function ppWindFrame() { if (!PINPOINT_V2) return; if (!PP.on) return; if (!G.gs
 { const _sf26 = stadiumFrame; stadiumFrame = function (t, dt) { _sf26(t, dt); try { ppWindFrame(); } catch (e) {} }; }
 PATCH.unshift(['v1.81', 'pinpoint on phones, announcers', ['Pinpoint on phones: a smaller pad, the stick reaches the dots (no more 0%), and your pitcher goes into his windup while you trace', 'Announcers: if a voice doesn’t talk, the line is tried again with your phone’s own voice instead of going quiet']]);
 /*G26END*/
+/*G27START*/
+// ================= v1.82 · tap fix, goofy voices everywhere, Watch Full Game · switches in the "v1.82" script at the top =================
+// ---- TAP_OFFSET_FIX: phones: taps land on the button you touch ----
+if (TAP_OFFSET_FIX) { const st = document.createElement('style'); st.textContent = `body.touch input, body.touch textarea, body.touch select { font-size: 16px !important; } #cabws { overflow-x: hidden !important; }`; document.head.appendChild(st);
+  const typing = () => { const a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); };
+  const reset = () => { if (typing()) return; try { window.scrollTo(0, 0); document.documentElement.scrollLeft = 0; document.documentElement.scrollTop = 0; document.body.scrollLeft = 0; document.body.scrollTop = 0; } catch (e) {}
+    try { const h = document.documentElement; if (h.classList.contains('dlock')) { h.classList.remove('dlock'); void h.offsetWidth; h.classList.add('dlock'); } } catch (e) {} };
+  document.addEventListener('focusout', e => { if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) { setTimeout(reset, 80); setTimeout(reset, 400); } }, true);
+  if (window.visualViewport) visualViewport.addEventListener('resize', () => { if (!typing() && (visualViewport.offsetLeft || visualViewport.offsetTop)) setTimeout(reset, 50); });
+  window.addEventListener('orientationchange', () => setTimeout(reset, 300)); }
+// ---- GOOFY_VOICES: no joke voice on this device (or it didn't work)? the normal voice gets a silly pitch and speed instead, new ones every game ----
+var GOOF = { key: null, map: {} };
+const GOOF_SETS = [{ p: 2, r: 1.3 }, { p: 1.85, r: 1.5 }, { p: 0.5, r: 0.72 }, { p: 0.6, r: 0.6 }, { p: 0.1, r: 1.05 }, { p: 2, r: 0.75 }, { p: 0.55, r: 1.45 }];
+(function () { if (!GOOFY_VOICES || !window.speechSynthesis) return; const S = window.speechSynthesis, prev = S.speak;
+  try { S.speak = function (u) { try { if (typeof JOKE_VOICES !== 'undefined' && JOKE_VOICES && G.gs && u && !(u.voice && window._jokeRe && window._jokeRe.test(u.voice.name || ''))) {
+        const key = G.gsKey || 'g'; if (GOOF.key !== key) { GOOF.key = key; GOOF.map = {}; const pool = GOOF_SETS.slice().sort(() => Math.random() - 0.5); GOOF.pool = pool; }
+        const who = CALLERS.findIndex(c => Math.abs(c.pitch - u.pitch) < 0.001 && Math.abs(c.rate - u.rate) < 0.001); const k = who >= 0 ? who : (u.text || '').length % 2;
+        if (!GOOF.map[k]) GOOF.map[k] = GOOF.pool[k % GOOF.pool.length]; u.pitch = GOOF.map[k].p; u.rate = GOOF.map[k].r; } } catch (e) {} return prev.call(S, u); }; } catch (e) {} })();
+// ---- WATCH_FULL_GAME: a TV broadcast of a CPU vs CPU game ----
+var BC = { on: false, cam: 'cf', paKey: null, ab: [], stats: {}, pc: {}, last: null, ltT: 0, cardT: 0, sides: null, intro: false };
+if (WATCH_FULL_GAME) { const st = document.createElement('style'); st.textContent = `
+body.bcast #mob, body.bcast #mobact, body.bcast #joy, body.bcast #mobkeys, body.bcast #mobmore, body.bcast #keyhints, body.bcast #pitchshow, body.bcast #pitchctl, body.bcast #quickbar, body.bcast #swingbtn, body.bcast #meter, body.bcast .bug, body.bcast #role, body.bcast #fancam, body.bcast #chals, body.bcast #ppw, body.bcast #sbbox, body.bcast #pausebtn { display: none !important; }
+#bcbug, #bclt, #bckz, #bccard, #bccam { display: none; } body.bcast #bcbug, body.bcast #bccam { display: flex; } body.bcast #bckz.on { display: block; } body.bcast #bclt.on, body.bcast #bccard.on { display: flex; }
+#bcbug { position: fixed; z-index: 55; left: calc(14px + env(safe-area-inset-left, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); flex-direction: column; font-family: var(--cond, 'Barlow Condensed', Arial); color: #fff; filter: drop-shadow(0 4px 14px rgba(0,0,0,.55)); pointer-events: none; }
+#bcbug .top { display: flex; align-items: stretch; height: 44px; border-radius: 6px 6px 0 0; overflow: hidden; background: #0d1426; }
+#bcbug .tm { display: flex; align-items: center; gap: 8px; padding: 0 10px; min-width: 92px; justify-content: space-between; border-bottom: 4px solid var(--c); background: linear-gradient(#1a2440, #0d1426); }
+#bcbug .tm i { font-style: normal; font-weight: 700; font-size: 19px; letter-spacing: .04em; text-transform: uppercase; } #bcbug .tm b { font-size: 26px; font-weight: 800; min-width: 18px; text-align: right; } #bcbug .tm.bat i::after { content: ' ●'; color: #ffd23f; font-size: 11px; vertical-align: middle; }
+#bcbug .inn { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 40px; background: #16213d; font-weight: 800; font-size: 18px; line-height: 1; } #bcbug .inn small { font-size: 11px; color: #ffd23f; }
+#bcbug .bases { width: 50px; display: flex; align-items: center; justify-content: center; background: #16213d; } #bcbug .cnt { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 10px; background: #16213d; font-weight: 800; font-size: 20px; line-height: 1.05; } #bcbug .cnt .outs { display: flex; gap: 4px; margin-top: 3px; } #bcbug .cnt .outs i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #ffd23f; } #bcbug .cnt .outs i.on { background: #ffd23f; }
+#bcbug .sub { display: flex; justify-content: space-between; gap: 14px; background: rgba(8,12,24,.92); padding: 4px 10px; font-size: 14px; letter-spacing: .04em; border-radius: 0 0 6px 6px; text-transform: uppercase; } #bcbug .sub .mph { color: #ffd23f; font-weight: 700; }
+#bclt { position: fixed; z-index: 55; left: 50%; transform: translateX(-50%); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); align-items: stretch; font-family: var(--cond, 'Barlow Condensed', Arial); color: #fff; pointer-events: none; animation: bcin .35s ease-out; filter: drop-shadow(0 4px 14px rgba(0,0,0,.55)); }
+#bclt .no { background: var(--c, #ffd23f); color: #111; font-weight: 800; font-size: 30px; padding: 4px 12px; display: flex; align-items: center; border-radius: 6px 0 0 6px; }
+#bclt .nm { background: #0d1426; padding: 5px 16px; display: flex; flex-direction: column; justify-content: center; border-radius: 0 6px 6px 0; min-width: 210px; } #bclt .nm b { font-size: 24px; letter-spacing: .04em; text-transform: uppercase; } #bclt .nm small { font-size: 15px; color: #c9d4ee; letter-spacing: .03em; }
+#bckz { position: fixed; z-index: 55; right: calc(14px + env(safe-area-inset-right, 0px)); top: calc(70px + env(safe-area-inset-top, 0px)); width: 112px; padding: 6px; background: rgba(8,12,24,.82); border-radius: 8px; pointer-events: none; font-family: var(--cond, Arial); color: #fff; } #bckz small { display: block; text-align: center; font-size: 11px; letter-spacing: .1em; color: #9fb0d0; margin-bottom: 2px; }
+#bccard { position: fixed; z-index: 56; left: 50%; top: 40%; transform: translate(-50%, -50%); flex-direction: column; align-items: center; gap: 4px; padding: 16px 28px; background: rgba(8,12,24,.92); border-top: 4px solid #ffd23f; border-radius: 8px; font-family: var(--cond, Arial); color: #fff; text-align: center; pointer-events: none; animation: bcin .35s ease-out; } #bccard small { font-size: 14px; letter-spacing: .14em; color: #ffd23f; } #bccard b { font-size: 30px; letter-spacing: .04em; text-transform: uppercase; } #bccard span { font-size: 17px; color: #c9d4ee; }
+#bccam { position: fixed; z-index: 57; right: calc(14px + env(safe-area-inset-right, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); padding: 9px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); background: rgba(8,12,24,.8); color: #fff; font: 700 14px var(--cond, Arial); letter-spacing: .05em; touch-action: manipulation; }
+body.bcast #bclive { display: block; } #bclive { display: none; position: fixed; z-index: 55; left: calc(14px + env(safe-area-inset-left, 0px)); top: calc(14px + env(safe-area-inset-top, 0px)); padding: 3px 9px; border-radius: 4px; background: #c62828; color: #fff; font: 800 13px var(--cond, Arial); letter-spacing: .12em; pointer-events: none; }
+@keyframes bcin { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; } }`; document.head.appendChild(st);
+  ['bcbug', 'bclt', 'bckz', 'bccard', 'bclive'].forEach(id => { const d = document.createElement('div'); d.id = id; document.body.appendChild(d); }); $('bclive').textContent = '● LIVE';
+  const cb = document.createElement('button'); cb.id = 'bccam'; cb.type = 'button'; document.body.appendChild(cb); cb.addEventListener('pointerdown', e => e.stopPropagation());
+  cb.addEventListener('click', e => { e.stopPropagation(); BC.cam = BC.cam === 'cf' ? 'tv' : BC.cam === 'tv' ? 'seat' : 'cf'; FAN.cam = BC.cam === 'seat' ? 'fan' : 'tv'; bcCamLabel(); SFX.blip(700); });
+  const row = $('cabbtn') && $('cabbtn').parentNode; if (row) { const b = document.createElement('button'); b.type = 'button'; b.className = 'big alt'; b.id = 'bcbtn'; b.textContent = '📺 Watch Full Game'; b.title = 'A CPU vs CPU game on TV: the broadcast camera, score bug, count, pitch speeds and the announcers';
+    b.addEventListener('click', () => { G.autoMe = 'watch'; G.bcast = true; BC.cam = 'cf'; FAN.cam = 'tv'; SFX.unlock(); startBot(); }); $('cabbtn').after(b); } }
+function bcCamLabel() { const b = $('bccam'); if (b) b.textContent = BC.cam === 'cf' ? '🎥 Center field' : BC.cam === 'tv' ? '🎥 Behind the plate' : '🎥 Seats'; }
+const bcTeam = s => String((G.gs && G.gs.names[s]) || '').replace(/\s*\(CPU\)\s*/i, '').trim();
+const bcAbbr = s => { const n = bcTeam(s).toUpperCase().replace(/[^A-Z ]/g, ''), w = n.split(/\s+/).filter(Boolean); return (w.length > 1 ? w[0][0] + w[1].slice(0, 2) : n.slice(0, 4)) || 'TEAM'; };
+const bcCol = s => { try { return CH[G.gs.chars[s]].css; } catch (e) { return '#ffd23f'; } };
+const bcLine = (side, slot) => { const s = BC.stats[side + ':' + slot]; if (!s || !s.pa) return 'First at-bat today'; const bits = [`${s.h}-for-${s.ab}`]; if (s.hr) bits.push(s.hr > 1 ? s.hr + ' HR' : 'HR'); if (s.rbi) bits.push(s.rbi + ' RBI'); if (s.bb) bits.push(s.bb > 1 ? s.bb + ' BB' : 'BB'); if (s.k) bits.push(s.k > 1 ? s.k + ' K' : 'K'); return 'Today: ' + bits.join(' · '); };
+function bcOn() { return !!(WATCH_FULL_GAME && G.bcast && G.autoMe === 'watch' && G.gs); }
+{ const _ar27 = applyResult; applyResult = function (gs0, res, f) { const out = _ar27.apply(this, arguments); try { if (bcOn() && res && res.kind && out && out.gs) { const p = G.pitch, b = battingIdx(gs0), pi = pitchingIdx(gs0), slot = slotOf(gs0, b);
+      const pk = pi + ':' + gs0.closer[pi]; BC.pc[pk] = (BC.pc[pk] || 0) + 1;
+      if (p) { BC.last = { mph: p.mph, type: (pitchById(p.type) || {}).name || p.type }; if (BC.paKey !== gs0.pa) { BC.paKey = gs0.pa; BC.ab = []; } BC.ab.push({ x: p.tx, y: p.ty, k: res.kind }); }
+      if (out.gs.pa > gs0.pa) { const key = b + ':' + slot, s = BC.stats[key] = BC.stats[key] || { pa: 0, ab: 0, h: 0, hr: 0, rbi: 0, bb: 0, k: 0 }, c = String(out.call || '').toUpperCase(); s.pa++;
+        if (/WALK|HIT BY|HBP/.test(c)) s.bb++; else if (!/SAC/.test(c)) s.ab++; if (/HOME RUN|GRAND SLAM|SINGLE|DOUBLE|TRIPLE/.test(c)) s.h++; if (/HOME RUN|GRAND SLAM/.test(c)) s.hr++; if (/STRIKEOUT/.test(c)) s.k++; s.rbi += out.runs || 0; } } } catch (e) {} return out; }; }
+{ const _sg27 = startGame; startGame = function (gs, me) { if (!(G.bcast && G.autoMe === 'watch')) G.bcast = false; const r = _sg27.apply(this, arguments); try { const on = bcOn(); document.body.classList.toggle('bcast', on); if (on) { BC.paKey = null; BC.ab = []; BC.stats = {}; BC.pc = {}; BC.last = null; BC.intro = false; BC.newPa = null; BC.halfKey = null; bcCamLabel(); hideBanner(); bcCard('BART BALL LIVE', `${bcTeam(1 - gs.homeIdx)} at ${bcTeam(gs.homeIdx)}`, `${gs.innings} innings · tonight’s broadcast`, 4.5); } } catch (e) {} return r; }; }
+{ const _tm27 = toMenu; toMenu = function () { G.bcast = false; document.body.classList.remove('bcast'); ['bclt', 'bckz', 'bccard'].forEach(id => { const e = $(id); if (e) e.classList.remove('on'); }); return _tm27.apply(this, arguments); }; }
+function bcCard(top, big, sub, secs) { const c = $('bccard'); if (!c) return; c.innerHTML = `<small>${top}</small><b>${big}</b>${sub ? `<span>${sub}</span>` : ''}`; c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); BC.cardT = now() + (secs || 3); }
+const bcIdle = () => { try { return !BOOTH || BOOTH.talk === -1 || BOOTH.talk == null || now() > BOOTH.until; } catch (e) { return true; } };
+function bcDiamond(bs) { const on = i => bs[i] ? '#ffd23f' : 'rgba(255,255,255,.18)', d = (x, y, i) => `<rect x="${x - 6}" y="${y - 6}" width="12" height="12" transform="rotate(45 ${x} ${y})" fill="${on(i)}" stroke="#ffd23f" stroke-width="1.2"/>`; return `<svg width="44" height="34" viewBox="0 0 44 34">${d(22, 9, 1)}${d(33, 21, 0)}${d(11, 21, 2)}</svg>`; }
+function bcFrame(t) { const on = bcOn(); if (document.body.classList.contains('bcast') !== on) document.body.classList.toggle('bcast', on); if (!on) return; const gs = G.gs, a = 1 - gs.homeIdx, h = gs.homeIdx, b = battingIdx(gs), pi = pitchingIdx(gs), n = now();
+  // the score bug
+  const pk = pi + ':' + gs.closer[pi], L = BC.last, pn = String(pitcherName(gs) || '').replace(/\s*\(CPU\)\s*/i, '').slice(0, 22);
+  const html = `<div class="top"><div class="tm${b === a ? ' bat' : ''}" style="--c:${bcCol(a)}"><i>${bcAbbr(a)}</i><b>${gs.score[a]}</b></div><div class="tm${b === h ? ' bat' : ''}" style="--c:${bcCol(h)}"><i>${bcAbbr(h)}</i><b>${gs.score[h]}</b></div><div class="inn"><small>${gs.half ? '▼' : '▲'}</small>${gs.inning}</div><div class="bases">${bcDiamond(gs.bases || [0, 0, 0])}</div><div class="cnt">${gs.balls}-${gs.strikes}<div class="outs">${[0, 1, 2].map(i => `<i class="${i < gs.outs ? 'on' : ''}"></i>`).join('')}</div></div></div><div class="sub"><span>P: ${pn} · ${BC.pc[pk] || 0} P</span>${L && L.mph ? `<span class="mph">${Math.round(L.mph)} MPH ${String(L.type || '').toUpperCase()}</span>` : ''}</div>`;
+  const bug = $('bcbug'); if (bug && bug._h !== html) { bug._h = html; bug.innerHTML = html; }
+  // a new batter: the lower third, and sometimes the booth introduces him
+  const key = gs.pa + '|' + gs.inning + '|' + gs.half; if (BC.newPa !== key && ['aim', 'intro', 'windup'].includes(G.local)) { BC.newPa = key; const slot = slotOf(gs, b), no = ((gs.order[b] % 9) + 9) % 9 + 1, nm = String(batterName(gs) || '').replace(/\s*\(CPU\)\s*/i, ''), line = bcLine(b, slot);
+    const lt = $('bclt'); if (lt) { lt.style.setProperty('--c', bcCol(b)); lt.innerHTML = `<div class="no">${no}</div><div class="nm"><b>${nm}</b><small>${line} · vs ${pn}</small></div>`; lt.classList.remove('on'); void lt.offsetWidth; lt.classList.add('on'); BC.ltT = n + 5; }
+    if (BC.paKey !== gs.pa) { BC.ab = []; }
+    if (!BC.intro) { BC.intro = true; setTimeout(() => { try { if (bcOn()) boothTalk([`Good evening everybody, and welcome to Bart Ball! It’s ${bcTeam(a)} visiting ${bcTeam(h)} tonight.`, `What a night for baseball. ${pitcherName(G.gs)} gets the ball. Here we go!`], {}); } catch (e) {} }, 900); }
+    else if (bcIdle() && Math.random() < 0.45) { try { boothTalk([`Now batting for ${bcTeam(b)}, number ${no}, ${nm}.`, line === 'First at-bat today' ? 'First look at him tonight.' : line.replace('Today: ', 'He’s ') + ' so far.'], {}); } catch (e) {} } }
+  if (BC.ltT && n > BC.ltT) { BC.ltT = 0; const lt = $('bclt'); if (lt) lt.classList.remove('on'); }
+  if (BC.cardT && n > BC.cardT) { BC.cardT = 0; const c = $('bccard'); if (c) c.classList.remove('on'); }
+  // between halves: the inning card
+  const hk = gs.inning + '|' + gs.half; if (BC.halfKey && BC.halfKey !== hk && gs.phase !== 'final') bcCard(gs.half ? `MIDDLE OF THE ${ordinal(gs.inning).toUpperCase()}` : `END OF THE ${ordinal(gs.inning - 1 || 1).toUpperCase()}`, `${bcAbbr(a)} ${gs.score[a]} · ${bcAbbr(h)} ${gs.score[h]}`, '', 3.2); BC.halfKey = hk;
+  if (gs.phase === 'final' && !BC.finalShown) { BC.finalShown = true; bcCard('FINAL', `${bcAbbr(a)} ${gs.score[a]} · ${bcAbbr(h)} ${gs.score[h]}`, `${bcTeam(gs.score[a] > gs.score[h] ? a : h)} win it`, 6); } if (gs.phase !== 'final') BC.finalShown = false;
+  // the pitch tracker (this at-bat)
+  const kz = $('bckz'); if (kz) { const show = BC.ab.length > 0 && ['aim', 'windup', 'flight', 'play'].includes(G.local); kz.classList.toggle('on', show); if (show) { const W = 100, H = 110, zx = v => W / 2 - (v / (ZONE.x * 2.2)) * W, zy = v => H - ((v - (ZONE.yLo - 0.9)) / ((ZONE.yHi - ZONE.yLo) + 1.8)) * H;
+      const col = k => k === 'ball' ? '#43d17a' : k === 'inplay' ? '#4aa8ff' : k === 'hbp' ? '#ff8a1a' : '#ff4d4d';
+      const svg = `<small>THIS AT-BAT</small><svg width="100" height="110" viewBox="0 0 100 110"><rect x="${zx(ZONE.x)}" y="${zy(ZONE.yHi)}" width="${zx(-ZONE.x) - zx(ZONE.x)}" height="${zy(ZONE.yLo) - zy(ZONE.yHi)}" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.7)" stroke-width="1.4"/>${BC.ab.map((q, i) => `<circle cx="${clamp(zx(q.x), 6, 94)}" cy="${clamp(zy(q.y), 6, 104)}" r="7" fill="${col(q.k)}"/><text x="${clamp(zx(q.x), 6, 94)}" y="${clamp(zy(q.y), 6, 104) + 3.5}" text-anchor="middle" font-size="10" font-weight="700" fill="#08101e">${i + 1}</text>`).join('')}</svg>`; if (kz._h !== svg) { kz._h = svg; kz.innerHTML = svg; } } }
+  // the center field camera, like on TV
+}
+function bcCam() { if (!bcOn() || BC.cam !== 'cf' || !['aim', 'windup', 'flight'].includes(G.local) || (G.play && G.play.rp)) { if (BC.fovSet) { BC.fovSet = false; camera.fov = camCur.fov || baseFov(); camera.updateProjectionMatrix(); } return; }
+  const tall = camera.aspect < 1; camera.position.set(-2.2, tall ? 15 : 13.5, -104); camera.lookAt(-0.6, 3.6, 0); const f = tall ? 19 : 10.5; if (Math.abs(camera.fov - f) > 0.01) { camera.fov = f; camera.updateProjectionMatrix(); } BC.fovSet = true; }
+if (WATCH_FULL_GAME) { const _rr27 = renderer.render.bind(renderer); renderer.render = function (sc, cam) { if (cam === camera && sc === scene) { try { bcCam(); } catch (e) {} } return _rr27(sc, cam); }; }
+{ const _sb27 = showBanner; showBanner = function (top) { if (bcOn() && /^Now batting/i.test(String(top || ''))) return; return _sb27.apply(this, arguments); }; }
+{ const _sf27 = stadiumFrame; stadiumFrame = function (t, dt) { _sf27(t, dt); try { bcFrame(t); } catch (e) { if (!BC.err) { BC.err = 1; console.warn(e); } } }; }
+PATCH.unshift(['v1.82', 'Watch Full Game, goofy voices, phone taps', ['New: 📺 Watch Full Game (next to Create-A-Bart): a CPU vs CPU game on TV, with the center field camera, a real score bug (score, inning, bases, count, outs, pitch count, pitch speed), batter graphics with his day so far, a pitch tracker, inning cards and the announcers calling it', 'Goofy voices: phones without the joke voices get the normal voice with a silly pitch and speed, new every game', 'Phones: taps land where you touch after typing in a box']]);
+/*G27END*/
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
