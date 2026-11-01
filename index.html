@@ -806,6 +806,15 @@ const OHTANI_HIT_SOUND = 'https://github.com/Maxx0706/f/raw/refs/heads/main/ohta
 const BART_CRUSHER = true;         // Bart Crusher: a hitter with giant arms and tiny legs (skipped leg day). Ridiculously fast swing, gets under everything: his hits and pop-ups go super super high
 const GRAPHICS_OVERHAUL = true;    // Settings → Graphics: Classic (how it looks now) or Better (real shadows, sun rays, glow, color grading). Starts on Classic
 </script>
+<script>
+// ================= v1.70 · true = on, false = how it was =================
+const TEE_NO_DELAY = true;         // Tee Ball Timmy: the ball comes off the bat the moment he swings (it was waiting ~4 seconds)
+const GFX_TRAIL_FIX = true;        // Better graphics: the pitch trail is a bright, thick streak you can actually follow, and the look is toned down a little
+const UMP_PLATE_HIDE = true;       // the "plate view" pitching camera: the ump gets out of the way while you aim and throw, so he doesn't block the pitch
+const PITCH_PICK_MOVE = true;      // phones: the pitch picker sits next to the PITCH button (by your thumb), not at the bottom in the middle
+const JOY_TAP_CYCLE = true;        // phones: a quick tap on the joystick switches to your next pitch (instead of the ⟳ pitch button)
+const PINPOINT_PITCHING = true;    // Settings → Pitching: Meter or Pinpoint (like MLB The Show): every pitch type has its own gesture you trace with the mouse (PC) or the joystick (phone). The cleaner and better-timed, the more accurate
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -813,7 +822,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.69'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.70'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -11705,6 +11714,91 @@ function gfxFrame() { const want = gfxWant(); if (want !== GFX.on) gfxApply(want
 PATCH.unshift(['v1.68', 'Ohtani, Bart Crusher, Better graphics', ['Ohtani is a two-way player now: still the closer in your bullpen, and a hitter on the lineup screen. Bats lefty, nuke power, and every ball he hits plays his sound',
   'New hitter: Bart Crusher. Giant arms, tiny legs, a lightning swing, and everything he hits goes sky high', 'Settings → Graphics: Classic or Better (real shadows, sun rays, glow, richer colors)']]);
 /*G14END*/
+/*G15START*/
+// ================= v1.70 · fixes + pinpoint pitching · switches in the "v1.70" script at the top =================
+(function () { const css = `html body.touch.mclean.ppick #pitchshow { left: auto !important; right: calc(122px + env(safe-area-inset-right, 0px)) !important; bottom: calc(4px + env(safe-area-inset-bottom, 0px)) !important; transform: scale(.46) !important; transform-origin: bottom right !important; }
+html body.touch.mclean.ppick.joyright #pitchshow { right: auto !important; left: calc(122px + env(safe-area-inset-left, 0px)) !important; transform-origin: bottom left !important; }
+body.joytap #quickbar .qpitch { display: none !important; }
+#ppw { position: fixed; z-index: 60; left: 50%; top: 46%; transform: translate(-50%, -50%); width: min(240px, 48vmin); aspect-ratio: 1 / 1; pointer-events: none; }
+#ppw canvas { width: 100%; height: 100%; display: block; } #ppw b { position: absolute; left: 0; right: 0; top: -26px; text-align: center; font-family: var(--cond); font-size: 16px; letter-spacing: .08em; color: #ffd23f; text-shadow: 0 2px 6px #000; }
+body.touch #ppw { top: 40%; }`; const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s); })();
+
+// ---- Tee Ball: no 4-second wait after the swing (TEE_NO_DELAY) ----
+function teeDelayFrame() { if (!TEE_NO_DELAY || !G.gs) return; const p = G.pitch; if (p && p.tee && G.local === 'flight' && G.res && G.res.swing) { const tf = now() - G.flightT0; if (G.resAt > tf + 0.2) G.resAt = tf + 0.12; } }
+
+// ---- Better graphics: a thick, bright pitch trail (GFX_TRAIL_FIX) ----
+var RIB = null;
+function ribbon() { if (RIB) return RIB; const N = 30, g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 2 * 3), 3)); g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(N * 2 * 3), 3));
+  const idx = []; for (let i = 0; i < N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } g.setIndex(idx);
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 1, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })); m.frustumCulled = false; m.visible = false; m.renderOrder = 9; scene.add(m); return RIB = { m, g, N }; }
+const _rv = new THREE.Vector3(), _rd = new THREE.Vector3(), _rs = new THREE.Vector3();
+function ribbonFrame() { const on = !!(GFX_TRAIL_FIX && typeof GFX !== 'undefined' && GFX.on); trail.material.visible = !on; const R = ribbon(); R.m.visible = on && trail.visible && trailPts.length > 1; if (!R.m.visible) return;
+  const pos = R.g.attributes.position.array, col = R.g.attributes.color.array, n = Math.min(trailPts.length, R.N), c = trail.material.color, hot = c.g < 0.8;
+  for (let i = 0; i < R.N; i++) { const k = Math.min(i, n - 1), P = trailPts[k], Q = trailPts[Math.min(k + 1, n - 1)], O = trailPts[Math.max(k - 1, 0)]; _rv.set(P[0], P[1], P[2]); _rd.set(Q[0] - O[0], Q[1] - O[1], Q[2] - O[2]); if (_rd.lengthSq() < 1e-6) _rd.set(0, 0, 1);
+    _rs.copy(camera.position).sub(_rv).cross(_rd).normalize(); const f = n > 1 ? k / (n - 1) : 1, w = (hot ? 0.24 : 0.16) * (0.15 + 0.85 * f);
+    pos[i * 6] = _rv.x + _rs.x * w; pos[i * 6 + 1] = _rv.y + _rs.y * w; pos[i * 6 + 2] = _rv.z + _rs.z * w; pos[i * 6 + 3] = _rv.x - _rs.x * w; pos[i * 6 + 4] = _rv.y - _rs.y * w; pos[i * 6 + 5] = _rv.z - _rs.z * w;
+    const a = i < n ? f * f * 0.9 : 0; for (let j = 0; j < 2; j++) { col[i * 6 + j * 3] = c.r * a; col[i * 6 + j * 3 + 1] = c.g * a; col[i * 6 + j * 3 + 2] = c.b * a; } }
+  R.g.attributes.position.needsUpdate = true; R.g.attributes.color.needsUpdate = true; R.g.computeBoundingSphere(); }
+// a little gentler on the colors
+function gfxTone() { if (!GFX_TRAIL_FIX || typeof GFX === 'undefined' || !GFX.post || GFX._tone) return; GFX._tone = true; const fs = GFX.post.mat.fragmentShader
+    .replace('col = mix(col, aces(col*1.15), 0.5); float l = lum(col); col = mix(vec3(l), col, 1.14); col = (col-0.5)*1.06+0.5;', 'col = mix(col, aces(col*1.12), 0.32); float l = lum(col); col = mix(vec3(l), col, 1.07); col = (col-0.5)*1.03+0.5;')
+    .replace('col *= mix(0.8, 1.0, v);', 'col *= mix(0.9, 1.0, v);').replace('col += bl*0.16;', 'col += bl*0.1;'); if (fs !== GFX.post.mat.fragmentShader) { GFX.post.mat.fragmentShader = fs; GFX.post.mat.needsUpdate = true; } }
+
+// ---- plate view: the ump steps out of the way (UMP_PLATE_HIDE) ----
+function umpPlateFrame() { if (!UMP_PLATE_HIDE || !G.gs) return; const cp = typeof camPref === 'function' ? camPref() : null, plate = !!(iPitch() && cp && cp.pitchView === 'plate' && !useMoundCam() && ['aim', 'windup', 'flight'].includes(G.local));
+  if (plate) { if (umpHome.visible) { umpHome.visible = false; G.umpHid = true; } } else if (G.umpHid) { G.umpHid = false; if (['aim', 'windup', 'flight', 'play', 'between'].includes(G.local)) umpHome.visible = true; } }
+
+// ---- phones: the pitch picker by your thumb (PITCH_PICK_MOVE), tap the joystick for the next pitch (JOY_TAP_CYCLE) ----
+function nextPitchId() { const ids = [...document.querySelectorAll('#psgrid .psh')].filter(b => !b.hidden).map(b => b.dataset.id); const list = ids.length ? ids : ['FB', 'CB', 'SL', 'CH']; const i = list.indexOf(G.ptype); return list[(i + 1) % list.length]; }
+(function () { if (!JOY_TAP_CYCLE) return; const joy = $('joy'); if (!joy) return; let st = null;
+  joy.addEventListener('pointerdown', e => { st = { t: performance.now(), x: e.clientX, y: e.clientY, max: 0 }; }, true);
+  joy.addEventListener('pointermove', e => { if (st) st.max = Math.max(st.max, Math.hypot(e.clientX - st.x, e.clientY - st.y)); }, true);
+  joy.addEventListener('pointerup', e => { const S = st; st = null; if (!S || PP.on) return; const r = joy.getBoundingClientRect(); if (performance.now() - S.t < 260 && S.max < r.width * 0.12 && G.gs && iPitch() && G.local === 'aim' && !G.meter) { try { selectPitch(nextPitchId()); const p = pitchById(G.ptype); showCall((document.querySelector(`#psgrid .psh[data-id="${G.ptype}"] .lbl b`) || {}).textContent || p.name, false); SFX.blip(760); } catch (er) {} } }, true); })();
+function mobUiFrame() { const B = document.body.classList; const pk = !!(PITCH_PICK_MOVE && TOUCH), jt = !!(JOY_TAP_CYCLE && TOUCH); if (B.contains('ppick') !== pk) B.toggle('ppick', pk); if (B.contains('joytap') !== jt) B.toggle('joytap', jt); }
+
+// ---- pinpoint pitching (PINPOINT_PITCHING) ----
+var PP = { on: false };
+const PP_SHAPES = (() => { const arc = (a0, a1, r, n, cx, cy) => Array.from({ length: n + 1 }, (_, i) => { const a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; return [(cx || 0) + Math.cos(a) * r, (cy || 0) + Math.sin(a) * r]; });
+  return { FB: { n: 'Down, then back up', pts: [[0, -0.7], [0, 0.65], [0, -0.7]], T: 0.7 }, TS: { n: 'Down, then hook right', pts: [[0, -0.7], [0, 0.55], [0.55, -0.35]], T: 0.8 },
+    CB: { n: 'Big C', pts: arc(-60, -300, 0.65, 14), T: 0.95 }, SL: { n: 'Slash down-right, flick left', pts: [[-0.6, -0.6], [0.55, 0.55], [-0.15, 0.6]], T: 0.8 },
+    CH: { n: 'Zig-zag down', pts: [[0, -0.75], [0.1, -0.1], [-0.55, 0.25], [0.45, 0.7]], T: 0.9 }, KN: { n: 'Full circle', pts: arc(-90, 270, 0.62, 18), T: 1.05 } }; })();
+function ppMode() { try { return PINPOINT_PITCHING && (((typeof profPrefs === 'function' ? profPrefs() : {}) || {}).pitchMode === 'pinpoint'); } catch (e) { return false; } }
+function ppResample(pts, n) { const d = [0]; for (let i = 1; i < pts.length; i++) d.push(d[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])); const L = d[d.length - 1] || 1e-6, out = [];
+  for (let k = 0; k < n; k++) { const t = L * k / (n - 1); let i = 1; while (i < d.length - 1 && d[i] < t) i++; const s = (t - d[i - 1]) / ((d[i] - d[i - 1]) || 1e-6); out.push([pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * s, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * s]); } return { out, L }; }
+function ppStart() { const gs = G.gs; if (!gs) return; const sh = PP_SHAPES[G.ptype] || PP_SHAPES.FB; PP = { on: true, sh, type: G.ptype, aim: { x: G.aim.x, y: G.aim.y }, t0: now(), started: 0, trace: [], cur: [0, 0], tgtL: ppResample(sh.pts, 32).L };
+  let w = $('ppw'); if (!w) { w = document.createElement('div'); w.id = 'ppw'; w.innerHTML = '<b></b><canvas width="260" height="260"></canvas>'; document.body.appendChild(w); } w.hidden = false; w.querySelector('b').textContent = `${(pitchById(G.ptype).name || 'Pitch').toUpperCase()}: ${sh.n.toUpperCase()}`;
+  if (G.aimT0) G.aimT0 = now(); SFX.blip(600); }
+function ppCursor() { if (TOUCH) return [JOY.x || 0, JOY.y || 0]; const w = $('ppw'); if (!w || PP.mx == null) return PP.cur; const r = w.getBoundingClientRect(), R = r.width / 2; return [clamp((PP.mx - r.left - R) / (R * 0.9), -1.2, 1.2), clamp((PP.my - r.top - R) / (R * 0.9), -1.2, 1.2)]; }
+window.addEventListener('mousemove', e => { if (PP.on) { PP.mx = e.clientX; PP.my = e.clientY; } }, true);
+function ppFinish(timeout) { const sh = PP.sh, T = PP.trace; let shape = 0, tempo = 0;
+  if (T.length > 3) { const tr = ppResample(T.map(q => [q[0], q[1]]), 32), tg = ppResample(sh.pts, 32); let err = 0; for (let i = 0; i < 32; i++) err += Math.hypot(tr.out[i][0] - tg.out[i][0], tr.out[i][1] - tg.out[i][1]); err /= 32; shape = clamp(1 - err / 0.42, 0, 1) * clamp(tr.L / (tg.L * 0.75), 0, 1);
+    const dur = T[T.length - 1][2] - T[0][2]; tempo = clamp(1 - Math.abs(dur - sh.T) / (sh.T * 1.1), 0, 1); }
+  const acc = clamp(0.1 + 0.9 * (0.72 * shape + 0.28 * tempo), 0, 1), a = PP.aim; PP.on = false; const w = $('ppw'); if (w) w.hidden = true;
+  const grade = acc > 0.9 ? 'Perfect' : acc > 0.72 ? 'Good' : acc > 0.5 ? 'Okay' : 'Poor'; try { const el = $('swingfb'), cls = grade === 'Perfect' ? 'perf' : grade === 'Good' ? 'good' : 'bad'; el.innerHTML = `<span><small>Pinpoint</small><b class="${cls}">${grade}</b></span><span><small>Shape · tempo</small><b class="${cls}">${Math.round(shape * 100)}% · ${Math.round(tempo * 100)}%</b></span>`; el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); clearTimeout(showSwingFb.t); showSwingFb.t = setTimeout(() => el.hidden = true, 1800); } catch (e) {}
+  if (G.gs && G.local === 'aim' && iPitch()) throwPitch(makePitch(G.gs.pn, PP.type, a.x, a.y, acc, pitchOpts())); }
+function ppFrame() { if (!PP.on) { const w = $('ppw'); if (w && !w.hidden) w.hidden = true; return; } if (!G.gs || G.local !== 'aim' || !iPitch()) { PP.on = false; return; }
+  G.aim.x = PP.aim.x; G.aim.y = PP.aim.y; // (the aim is locked while you trace)
+  const c = ppCursor(), t = now(), sh = PP.sh, s0 = sh.pts[0], end = sh.pts[sh.pts.length - 1]; PP.cur = c;
+  if (!PP.started) { if (Math.hypot(c[0] - s0[0], c[1] - s0[1]) < 0.28) { PP.started = t; PP.trace = [[c[0], c[1], t]]; } }
+  else { const L = PP.trace[PP.trace.length - 1]; if (Math.hypot(c[0] - L[0], c[1] - L[1]) > 0.02) PP.trace.push([c[0], c[1], t]); let len = 0; for (let i = 1; i < PP.trace.length; i++) len += Math.hypot(PP.trace[i][0] - PP.trace[i - 1][0], PP.trace[i][1] - PP.trace[i - 1][1]);
+    if (len > PP.tgtL * 0.7 && Math.hypot(c[0] - end[0], c[1] - end[1]) < 0.24) { ppFinish(false); return; } if (t - PP.started > 2.6) { ppFinish(true); return; } }
+  if (t - PP.t0 > 5) { ppFinish(true); return; }
+  // draw it
+  const cv = $('ppw') && $('ppw').querySelector('canvas'); if (!cv) return; const x = cv.getContext('2d'), W = cv.width, R = W / 2 * 0.9, P = q => [W / 2 + q[0] * R, W / 2 + q[1] * R]; x.clearRect(0, 0, W, W);
+  x.fillStyle = 'rgba(8,12,26,.55)'; x.beginPath(); x.arc(W / 2, W / 2, W / 2 - 2, 0, Math.PI * 2); x.fill(); x.strokeStyle = 'rgba(255,255,255,.18)'; x.lineWidth = 2; x.stroke();
+  x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = 'rgba(255,210,63,.45)'; x.lineWidth = 18; x.beginPath(); sh.pts.forEach((q, i) => { const p = P(q); i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.stroke();
+  for (let i = 1; i < sh.pts.length; i++) { const a = P(sh.pts[i - 1]), b = P(sh.pts[i]), m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], ang = Math.atan2(b[1] - a[1], b[0] - a[0]); if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 30) continue; x.fillStyle = 'rgba(255,255,255,.7)'; x.beginPath(); x.moveTo(m[0] + Math.cos(ang) * 9, m[1] + Math.sin(ang) * 9); x.lineTo(m[0] + Math.cos(ang + 2.5) * 8, m[1] + Math.sin(ang + 2.5) * 8); x.lineTo(m[0] + Math.cos(ang - 2.5) * 8, m[1] + Math.sin(ang - 2.5) * 8); x.fill(); }
+  const sp = P(s0), ep = P(end); x.fillStyle = '#39ff6a'; x.beginPath(); x.arc(sp[0], sp[1], 11, 0, Math.PI * 2); x.fill(); x.strokeStyle = '#ffd23f'; x.lineWidth = 4; x.beginPath(); x.arc(ep[0], ep[1], 13, 0, Math.PI * 2); x.stroke();
+  if (PP.trace.length > 1) { x.strokeStyle = '#fff'; x.lineWidth = 6; x.beginPath(); PP.trace.forEach((q, i) => { const p = P(q); i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.stroke(); }
+  const cp = P(c); x.fillStyle = PP.started ? '#fff' : 'rgba(255,255,255,.6)'; x.beginPath(); x.arc(cp[0], cp[1], 8, 0, Math.PI * 2); x.fill();
+  if (!PP.started) { x.fillStyle = '#fff'; x.font = '700 15px "Barlow Condensed", Arial'; x.textAlign = 'center'; x.fillText(TOUCH ? 'Push the stick to the green dot' : 'Move the mouse to the green dot', W / 2, W - 18); } }
+{ const _pp15 = pitchPress; pitchPress = function () { if (ppMode() && G.gs && iPitch() && G.local === 'aim' && !G.meter && !(G.penOpen && G.gs.askPen != null)) { if (!PP.on) ppStart(); return; } return _pp15.apply(this, arguments); }; }
+{ const _op15 = openProfile; openProfile = function (tab) { const r = _op15.apply(this, arguments); try { if (PINPOINT_PITCHING && $('profbody') && (tab === 'set' || (!tab && $('psegbatView'))) && !$('psegpitchMode')) { const pr = profPrefs() || {}, d = document.createElement('div'); d.innerHTML = '<div class="label">Pitching</div><div class="seg" id="psegpitchMode"></div><p class="note">Pinpoint (like MLB The Show): after you press Pitch, trace the pitch’s pattern: with the mouse on PC, with the joystick on a phone. Clean shape + good tempo = right on the spot.</p>'; $('profbody').appendChild(d);
+      seg('psegpitchMode', [['meter', 'Meter (classic)'], ['pinpoint', 'Pinpoint']], pr.pitchMode === 'pinpoint' ? 'pinpoint' : 'meter', v => profSetPref('pitchMode', v)); } } catch (e) {} return r; }; }
+{ const _sf15 = stadiumFrame; stadiumFrame = function (t, dt) { _sf15(t, dt); [teeDelayFrame, ribbonFrame, gfxTone, umpPlateFrame, mobUiFrame, ppFrame].forEach(f => { try { f(); } catch (e) {} }); }; }
+PATCH.unshift(['v1.70', 'fixes + pinpoint pitching', ['Pinpoint pitching (Settings → Pitching): trace each pitch’s pattern with the mouse or the joystick, like MLB The Show', 'Tee Ball Timmy: no more 4-second wait after he swings',
+  'Better graphics: a bright, thick pitch trail you can follow, and softer colors', 'Plate-view pitching camera: the ump gets out of the way', 'Phones: the pitch picker is next to the PITCH button, and a quick tap on the joystick switches pitches']]);
+/*G15END*/
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
