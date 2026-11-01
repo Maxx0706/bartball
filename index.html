@@ -825,6 +825,12 @@ const RHYTHM_BPM = 128;            // how fast the arrows come
 const IOS_DRAG_LOCK = true;        // iPhone: dragging on the screen can't slide the whole page anymore (that made buttons stop lining up with where you tap)
 const SETTINGS_TAP_FIX = true;     // Settings: the newer switches (Graphics, FPS counter, Pitching, Announcers' voices…) light up the option you tap right away
 </script>
+<script>
+// ================= v1.73 · true = on, false = how it was =================
+const GFX_COMET_TRAIL = true;      // Better graphics: the pitch trail is a glowing comet (no more twisty coils when the ball comes right at the camera)
+const GFX_GRASS = true;            // Better graphics: real grass blades on all the grass, swaying in the wind
+const CONTROL_MASTER = true;       // Control Master: a pitcher whose tap-pitching target doesn't wobble at all, with a huge Perfect window, pinpoint pitches, and the strike zone stays up while he throws
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -832,7 +838,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.72'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.73'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -11787,7 +11793,7 @@ function ppFinish(timeout) { const sh = PP.sh, T = PP.trace; let shape = 0, temp
   const grade = acc > 0.9 ? 'Perfect' : acc > 0.72 ? 'Good' : acc > 0.5 ? 'Okay' : 'Poor'; try { const el = $('swingfb'), cls = grade === 'Perfect' ? 'perf' : grade === 'Good' ? 'good' : 'bad'; el.innerHTML = `<span><small>Pinpoint</small><b class="${cls}">${grade}</b></span><span><small>Shape · tempo</small><b class="${cls}">${Math.round(shape * 100)}% · ${Math.round(tempo * 100)}%</b></span>`; el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); clearTimeout(showSwingFb.t); showSwingFb.t = setTimeout(() => el.hidden = true, 1800); } catch (e) {}
   if (G.gs && G.local === 'aim' && iPitch()) throwPitch(makePitch(G.gs.pn, PP.type, a.x, a.y, acc, pitchOpts())); }
 function ppFrame() { if (!PP.on) { const w = $('ppw'); if (w && !w.hidden) w.hidden = true; return; } if (!G.gs || G.local !== 'aim' || !iPitch()) { PP.on = false; return; }
-  G.aim.x = PP.aim.x; G.aim.y = PP.aim.y; // (the aim is locked while you trace)
+  G.aim.x = PP.aim.x; G.aim.y = PP.aim.y; if (G.aimRaw) { G.aimRaw.x = PP.aim.x; G.aimRaw.y = PP.aim.y; } // (the aim is locked while you trace: no wobble)
   const c = ppCursor(), t = now(), sh = PP.sh, s0 = sh.pts[0], end = sh.pts[sh.pts.length - 1]; PP.cur = c;
   if (!PP.started) { if (Math.hypot(c[0] - s0[0], c[1] - s0[1]) < 0.28) { PP.started = t; PP.trace = [[c[0], c[1], t]]; } }
   else { const L = PP.trace[PP.trace.length - 1]; if (Math.hypot(c[0] - L[0], c[1] - L[1]) > 0.02) PP.trace.push([c[0], c[1], t]); let len = 0; for (let i = 1; i < PP.trace.length; i++) len += Math.hypot(PP.trace[i][0] - PP.trace[i - 1][0], PP.trace[i][1] - PP.trace[i - 1][1]);
@@ -11908,6 +11914,54 @@ PATCH.unshift(['v1.71', 'Rhythm Game Bart', ['New hitter AND pitcher: Rhythm Gam
   const back = () => { if (window.scrollX || window.scrollY) window.scrollTo(0, 0); }; window.addEventListener('scroll', back, { passive: true }); if (window.visualViewport) window.visualViewport.addEventListener('scroll', back, { passive: true }); })();
 PATCH.unshift(['v1.72', 'phone fixes', ['iPhone: dragging on the screen doesn’t slide the page anymore, so the buttons stay where you tap them', 'Settings: Graphics, FPS counter, Pitching and Announcers’ voices light up the option you pick right away']]);
 /*G17END*/
+/*G18START*/
+// ================= v1.73 · comet trail, grass, Control Master · switches in the "v1.73" script at the top =================
+// ---- Better graphics: a glowing comet trail (GFX_COMET_TRAIL) ----
+var CMT = null;
+function comet() { if (CMT) return CMT; const N = 30 * 4, g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 3), 3)); g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
+  const m = new THREE.Points(g, new THREE.PointsMaterial({ size: 0.55, map: glowTex(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true })); m.frustumCulled = false; m.visible = false; m.renderOrder = 9; scene.add(m); return CMT = { m, g, N }; }
+function cometFrame() { const on = !!(GFX_COMET_TRAIL && typeof GFX !== 'undefined' && GFX.on); if (on && typeof RIB !== 'undefined' && RIB) RIB.m.visible = false; if (on) trail.material.visible = false; const C = comet(); C.m.visible = on && trail.visible && trailPts.length > 1; if (!C.m.visible) return;
+  const pos = C.g.attributes.position.array, col = C.g.attributes.color.array, n = trailPts.length, c = trail.material.color, hot = c.g < 0.8; let k = 0;
+  for (let i = 0; i < n - 1 && k < C.N; i++) { const A = trailPts[i], B = trailPts[i + 1]; for (let s = 0; s < 4 && k < C.N; s++, k++) { const f = s / 4, u = (i + f) / Math.max(1, n - 1), a = u * u * (hot ? 1.1 : 0.85);
+      pos[k * 3] = A[0] + (B[0] - A[0]) * f; pos[k * 3 + 1] = A[1] + (B[1] - A[1]) * f; pos[k * 3 + 2] = A[2] + (B[2] - A[2]) * f; col[k * 3] = c.r * a; col[k * 3 + 1] = c.g * a; col[k * 3 + 2] = c.b * a; } }
+  for (let j = k; j < C.N; j++) { col[j * 3] = col[j * 3 + 1] = col[j * 3 + 2] = 0; } C.g.setDrawRange(0, k); C.m.material.size = hot ? 0.75 : 0.55; C.g.attributes.position.needsUpdate = true; C.g.attributes.color.needsUpdate = true; }
+
+// ---- Better graphics: grass blades swaying in the wind (GFX_GRASS) ----
+var GRASS = { mesh: null, key: null, mat: null };
+function grassField() { let f = null; scene.traverse(o => { if (!f && o.isMesh && o.geometry && o.geometry.parameters && o.geometry.parameters.width === 600 && o.geometry.parameters.height === 520 && o.material && o.material.map && o.material.map.image) f = o; }); return f; }
+function grassBuild() { const F = grassField(); if (!F) return; const cv = F.material.map.image, W = cv.width, H = cv.height; let px; try { px = cv.getContext('2d').getImageData(0, 0, W, H).data; } catch (e) { return; }
+  const col = (x, z) => { const u = (x + 300) / 600, v = (z + 450) / 520; if (u < 0 || u >= 1 || v < 0 || v >= 1) return null; const i = ((Math.floor(v * H) * W) + Math.floor(u * W)) * 4; return [px[i], px[i + 1], px[i + 2]]; };
+  const isGrass = c => c && c[1] > c[0] * 1.12 && c[1] > c[2] * 1.05 && c[1] > 40;
+  const mobile = !!TOUCH, offs = [], cols = [], rots = [], scs = [];
+  const sow = (x0, x1, z0, z1, dens) => { const n = Math.floor((x1 - x0) * (z1 - z0) * dens * (mobile ? 0.45 : 1)); for (let i = 0; i < n; i++) { const x = x0 + Math.random() * (x1 - x0), z = z0 + Math.random() * (z1 - z0), c = col(x, z); if (!isGrass(c)) continue; const v = 0.75 + Math.random() * 0.5;
+      offs.push(x, 0, z); cols.push(c[0] / 255 * v, c[1] / 255 * v * 1.05, c[2] / 255 * v); rots.push(Math.random() * Math.PI * 2); scs.push(0.35 + Math.random() * 0.45); } };
+  sow(-140, 140, -190, 40, 1.7); sow(-300, 300, -450, -190, 0.22); sow(-300, -140, -190, 40, 0.22); sow(140, 300, -190, 40, 0.22);
+  const base = new THREE.BufferGeometry(); base.setAttribute('position', new THREE.Float32BufferAttribute([-0.07, 0, 0, 0.07, 0, 0, 0, 1, 0], 3)); base.setAttribute('h', new THREE.Float32BufferAttribute([0, 0, 1], 1));
+  const g = new THREE.InstancedBufferGeometry(); g.index = null; g.setAttribute('position', base.getAttribute('position')); g.setAttribute('h', base.getAttribute('h'));
+  g.setAttribute('ioff', new THREE.InstancedBufferAttribute(new Float32Array(offs), 3)); g.setAttribute('icol', new THREE.InstancedBufferAttribute(new Float32Array(cols), 3)); g.setAttribute('irot', new THREE.InstancedBufferAttribute(new Float32Array(rots), 1)); g.setAttribute('isc', new THREE.InstancedBufferAttribute(new Float32Array(scs), 1)); g.instanceCount = scs.length;
+  const mat = new THREE.ShaderMaterial({ uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uT: { value: 0 }, uWind: { value: new THREE.Vector2(0.8, 0.3) } }]), fog: true, side: THREE.DoubleSide,
+    vertexShader: ['attribute float h; attribute vec3 ioff; attribute vec3 icol; attribute float irot; attribute float isc; uniform float uT; uniform vec2 uWind; varying vec3 vC; varying float vH;', '#include <fog_pars_vertex>',
+      'void main(){ float c = cos(irot), s = sin(irot); vec3 p = vec3(position.x*c, position.y*isc, position.x*s); float sway = sin(uT*1.7 + ioff.x*0.09 + ioff.z*0.07) * 0.6 + sin(uT*3.1 + ioff.x*0.23) * 0.25 + sin(uT*0.6 + ioff.z*0.02) * 0.5;',
+      ' p.xz += uWind * sway * 0.22 * h * h * isc; vec3 w = ioff + p; vC = icol; vH = h; vec4 mvPosition = modelViewMatrix * vec4(w, 1.0); gl_Position = projectionMatrix * mvPosition;', '#include <fog_vertex>', '}'].join('\n'),
+    fragmentShader: ['varying vec3 vC; varying float vH;', '#include <fog_pars_fragment>', 'void main(){ vec3 c = vC * (0.55 + 0.6 * vH) + vec3(0.03, 0.06, 0.0) * vH; gl_FragColor = vec4(c, 1.0);', '#include <fog_fragment>', '}'].join('\n') });
+  if (GRASS.mesh) { scene.remove(GRASS.mesh); GRASS.mesh.geometry.dispose(); } const m = new THREE.Mesh(g, mat); m.frustumCulled = false; m.renderOrder = 1; scene.add(m); GRASS.mesh = m; GRASS.mat = mat; }
+function grassFrame(t) { const on = !!(GFX_GRASS && typeof GFX !== 'undefined' && GFX.on); if (!on) { if (GRASS.mesh) GRASS.mesh.visible = false; return; } const key = (window._stadId || 0) + '';
+  if (GRASS.key !== key) { GRASS.key = key; setTimeout(() => { try { grassBuild(); } catch (e) { console.warn(e); } }, 50); } if (!GRASS.mesh) return; GRASS.mesh.visible = true; GRASS.mat.uniforms.uT.value = t; }
+
+// ---- Control Master (CONTROL_MASTER) ----
+const CM_ST = 104;
+if (CONTROL_MASTER) { ARMS.push({ st: CM_ST, name: 'Control Master', note: 'Dead-still target, a huge Perfect window, paints every corner. The strike zone stays up while he throws' }); NEW_ARM_NAMES[CM_ST] = 'Control Master'; }
+const cmNow = () => !!(CONTROL_MASTER && G.gs && G.gs.closer[pitchingIdx(G.gs)] === CM_ST);
+{ const _stp18 = startPrecision; startPrecision = function () { const r = _stp18.apply(this, arguments); try { if (cmNow() && G.meter) { G.meter.drift = 0; G.meter.off = { x: 0, y: 0 }; } } catch (e) {} return r; }; }
+{ const _rlp18 = releasePrecision; releasePrecision = function () { try { const M = G.meter; if (cmNow() && M && M.prec) { const dt = (now() - M.t0) - M.T; M.t0 = now() - (M.T + dt * 0.3); } } catch (e) {} return _rlp18.apply(this, arguments); }; }
+{ const _mp18 = makePitch; makePitch = function (n, type, aimX, aimY, acc, opts) { const out = _mp18.apply(this, arguments); try { if (CONTROL_MASTER && opts && opts.stage === CM_ST && !out.tee) { out.wild = false; out.tx = +(aimX + (out.tx - aimX) * 0.25).toFixed(3); out.ty = +(aimY + (out.ty - aimY) * 0.25).toFixed(3); } } catch (e) {} return out; }; }
+function cmLook(m, on) { const u = m.userData; if (!u || !u.jerseyMats || !on) return; u.jerseyMats.forEach(x => x.color.setHex(0xf2f2f2)); u.capMats.forEach(x => x.color.setHex(0x0d47a1)); }
+{ const _s5_18 = styleN5; styleN5 = function (gs, bi, pi) { const r = _s5_18.apply(this, arguments); try { cmLook(pitcherM, gs.closer[pi] === CM_ST && CONTROL_MASTER); } catch (e) {} return r; }; }
+{ const _pvp18 = pvPitcher; pvPitcher = function (ch, st, sp) { const m = _pvp18.apply(this, arguments); try { if (st === CM_ST) { const mm = m.userData && m.userData.body ? m : m.children.find(c => c.userData && c.userData.body); if (mm) cmLook(mm, true); } } catch (e) {} return m; }; }
+function cmFrame() { if (!cmNow()) return; if (['windup', 'flight'].includes(G.local) && !zoneLines.visible && !(G.g5 === 'zone')) zoneLines.visible = true; }
+{ const _sf18 = stadiumFrame; stadiumFrame = function (t, dt) { _sf18(t, dt); try { cometFrame(); } catch (e) {} try { grassFrame(t); } catch (e) {} try { cmFrame(); } catch (e) {} }; }
+PATCH.unshift(['v1.73', 'grass, comet trail, Control Master', ['Better graphics: real grass blades swaying in the wind, and the pitch trail is a glowing comet (no more coils)', 'New pitcher: Control Master. His tap-pitching target doesn’t wobble at all, he has a huge Perfect window, his pitches go exactly where he aims, and the strike zone stays up while he throws']]);
+/*G18END*/
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
