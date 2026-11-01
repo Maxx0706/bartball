@@ -861,6 +861,11 @@ const MORE_BTN_FIX = true;         // phones: the More and Quit buttons sit a li
 const VOICE_SAFETY = true;         // announcers: a voice that doesn't work on this phone (some joke voices aren't really installed) is noticed and never picked again, so the announcers don't go silent
 const OHTANISWINGFIX = true;       // Ohtani's real stance: tall and calm, bat straight up by his back shoulder, a little toe tap with the front foot as the pitcher winds up, and the front foot twists open when he swings
 </script>
+<script>
+// ================= v1.80 · true = on, false = how it was =================
+const LINEUP_KEEP_FIX = true;      // your saved lineup and starting pitcher come back exactly as you left them (new hitters like Ohtani, Crusher, Rhythm Bart and new pitchers like Control Master used to get bumped back to the classic order when the page loaded, and the bumped lineup got saved over yours)
+window._luBooting = true;          // (no lineup saving until the whole game has loaded)
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -868,7 +873,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.79'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.80'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -7234,7 +7239,7 @@ const luValid = L => Array.isArray(L) && L.length >= 9 && L.length <= ((typeof L
 const luFix = L => { L = L.filter(s => LU_ALL().includes(s) || (typeof CAB_HSLOTS !== 'undefined' && CAB_HSLOTS.includes(s))); LU_ALL().forEach(s => { if (!L.includes(s)) L.push(s); }); return L.length >= 9 ? L : LU_CLASSIC(); }; // old saved lineups get the bench added
 G.lineup = LU_CLASSIC(); G.spSt = 0;
 try { const s = JSON.parse(localStorage.getItem('bb-lineup') || 'null'); if (s && luValid(s.l)) G.lineup = luFix(s.l); if (s && ARMS.some(a => a.st === s.sp)) G.spSt = s.sp; } catch (e) {}
-function luSave() { try { localStorage.setItem('bb-lineup', JSON.stringify({ l: G.lineup, sp: G.spSt })); } catch (e) {} try { if (typeof acctLineupSave === 'function') acctLineupSave(); } catch (e) {} }
+function luSave() { if (window._luBooting && typeof LINEUP_KEEP_FIX !== 'undefined' && LINEUP_KEEP_FIX) return; try { localStorage.setItem('bb-lineup', JSON.stringify({ l: G.lineup, sp: G.spSt })); } catch (e) {} try { if (typeof acctLineupSave === 'function') acctLineupSave(); } catch (e) {} }
 function luSlotName(c, s) { try { return batterName({ half: 0, homeIdx: 1, order: [0, 0], sub: [{ 0: s }, {}], names: [CH[c].name, ''], sp: specialsFor([c, c]) }); } catch (e) { return CH[c].name; } }
 function luArmName(c, st) { try { return pitcherName({ half: 0, homeIdx: 0, closer: [st, 0], names: [CH[c].name, ''], sp: specialsFor([c, c]) }); } catch (e) { return ''; } }
 function buildLineup() {
@@ -9021,7 +9026,7 @@ function acctTab(add, p) { const D = profLoad();
   ex.querySelector('#pload').addEventListener('click', () => { try { const q = JSON.parse(decodeURIComponent(escape(atob(ex.querySelector('#pcode').value.trim())))); if (!q || !q.st || !q.name) throw 0; if (q.user) { const o = findUser(q.user); if (o && o.id !== q.id) delete D.list[o.id]; } q.id = q.id || newProfile().id; if (!q.pass) { delete q.user; } D.list[q.id] = q; PROF = null; lsSet(PROF_KEY, D); profLoad(); if (q.pass) { ex.querySelector('#pmsg').textContent = 'Loaded! Log in as ' + q.user + ' with that account’s password.'; } else { ex.querySelector('#pmsg').textContent = 'Loaded.'; } } catch (e) { ex.querySelector('#pmsg').textContent = 'That code didn’t work.'; } });
 }
 // ---- lineups follow your account, plus named presets (LINEUP_PRESETS) ----
-function acctLineupSave() { if (!SAVE_ON()) return; const p = profCur(); p.lineup = { l: G.lineup.slice(), sp: G.spSt }; profSave(); }
+function acctLineupSave() { if (!SAVE_ON() || (window._luBooting && typeof LINEUP_KEEP_FIX !== 'undefined' && LINEUP_KEEP_FIX)) return; const p = profCur(); p.lineup = { l: G.lineup.slice(), sp: G.spSt }; profSave(); }
 function acctLineupLoad() { if (!SAVE_ON()) return; const p = profCur(); if (p.lineup && luValid(p.lineup.l)) { G.lineup = luFix(p.lineup.l.slice()); if (ARMS.some(a => a.st === p.lineup.sp)) G.spSt = p.lineup.sp; } }
 function buildPresets() { const box = $('lupresets'); if (!box) return; const on = SAVE_ON() && typeof LINEUP_PRESETS !== 'undefined' && !!LINEUP_PRESETS && LU_ON(); box.hidden = !on; if (!on) return;
   const ps = profCur().presets || [], sel = $('lupsel'); sel.innerHTML = ps.length ? ps.map((q, i) => `<option value="${i}">${String(q.name).replace(/</g, '')}</option>`).join('') : '<option value="">(no presets yet)</option>'; $('lupload').disabled = $('lupdel').disabled = !ps.length; }
@@ -12144,6 +12149,19 @@ function ohsFrame(t) { if (!OHTANISWINGFIX || !ohtNow()) return; const a = batte
 { const _sf24 = stadiumFrame; stadiumFrame = function (t, dt) { _sf24(t, dt); try { ohsFrame(t); } catch (e) {} }; }
 PATCH.unshift(['v1.79', 'More button, announcers, Ohtani', ['Phones: the More and Quit buttons are lower and bigger so a tap always lands', 'Announcers: a voice that doesn’t really work on your phone gets skipped for good, so they don’t go quiet', 'Ohtani bats like the real thing: tall and calm, bat straight up, a little toe tap as the pitcher winds up, and his front foot twists open on the swing']]);
 /*G24END*/
+/*G25START*/
+// ================= v1.80 · the saved lineup survives a reload · switch in the "v1.80" script at the top =================
+// (runs last, once every hitter and pitcher in the game exists)
+const spOkAll = sp => ARMS.some(a => a.st === sp) || (typeof CREATE_A_BART !== 'undefined' && CREATE_A_BART && cabIsSt(sp));
+function luRestore() { if (!LINEUP_KEEP_FIX) return; let src = null;
+  try { if (SAVE_ON()) { const p = profCur(); if (p && p.lineup && luValid(p.lineup.l)) src = p.lineup; } } catch (e) {}
+  if (!src) { try { const sv = JSON.parse(localStorage.getItem('bb-lineup') || 'null'); if (sv && luValid(sv.l)) src = sv; } catch (e) {} }
+  if (src) { G.lineup = luFix(src.l.slice()); if (spOkAll(src.sp)) G.spSt = src.sp; }
+  window._luBooting = false; try { cabBenchFix(); } catch (e) {} luSave(); try { if (!$('luscreen').hidden) buildLineup(); } catch (e) {} }
+{ const _al25 = acctLineupLoad; acctLineupLoad = function () { const r = _al25.apply(this, arguments); try { const p = profCur(); if (LINEUP_KEEP_FIX && p && p.lineup && spOkAll(p.lineup.sp)) G.spSt = p.lineup.sp; } catch (e) {} return r; }; }
+try { luRestore(); } catch (e) { window._luBooting = false; console.warn(e); }
+PATCH.unshift(['v1.80', 'lineup fix', ['Your lineup and starting pitcher stay exactly how you left them after a reload (new hitters and pitchers used to get bumped back to the classic spots)']]);
+/*G25END*/
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
