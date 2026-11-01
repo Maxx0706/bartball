@@ -836,6 +836,10 @@ const CONTROL_MASTER = true;       // Control Master: a pitcher whose tap-pitchi
 const MAD_DEFAULT_FACES = true;    // every hitter who still has the regular Bart / Bart Jr face plays the Bart / Bart Jr mad sound on a pop-up (not just the ones in MAD_SLOTS)
 const SEARCH_TYPE_FIX = true;      // phones: typing in the Workshop search box works (the keyboard doesn't close after every letter)
 </script>
+<script>
+// ================= v1.75 · true = on, false = how it was =================
+const MOBILE_SOUND_FIX = true;     // phones: the sound comes back by itself after it gets cut off (switching apps, locking the screen, a notification, the announcer voice talking), and a sound that failed to load tries again later instead of staying silent for the whole game
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -843,7 +847,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.74'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.75'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -2959,8 +2963,10 @@ function say(event, charIdx) {
 const SFX = (() => {
   let ctx = null, master = null;
   function ac() {
+    if (ctx && ctx.state === 'closed' && typeof MOBILE_SOUND_FIX !== 'undefined' && MOBILE_SOUND_FIX) ctx = null;
     if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); master = ctx.createGain(); master.gain.value = 0.6; master.connect(ctx.destination); } catch (e) { return null; } }
-    if (ctx.state === 'suspended') ctx.resume();
+    if (typeof MOBILE_SOUND_FIX !== 'undefined' && MOBILE_SOUND_FIX) { let paused = false; try { paused = !!(PAUSE && PAUSE.on); } catch (e) {} if (!paused && ctx.state !== 'running' && ctx.state !== 'closed') { try { const pr = ctx.resume(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {} } }
+    else if (ctx.state === 'suspended') ctx.resume();
     return ctx;
   }
   function noise(dur) { const c = ctx, b = c.createBuffer(1, c.sampleRate * dur, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; const s = c.createBufferSource(); s.buffer = b; return s; }
@@ -4179,11 +4185,11 @@ const daxSound = (() => { let h = null; const f = (key, o) => { const sp = spOf(
 const CLIP = (() => {
   const bufs = {}, wait = {}, bad = {};
   function load(src) {
-    if (!src) return Promise.reject(); if (bufs[src]) return Promise.resolve(bufs[src]); if (wait[src]) return wait[src]; if (bad[src]) return Promise.reject();
+    if (!src) return Promise.reject(); if (bufs[src]) return Promise.resolve(bufs[src]); if (wait[src]) return wait[src]; if (bad[src] && !(typeof MOBILE_SOUND_FIX !== 'undefined' && MOBILE_SOUND_FIX && bad[src] > 1 && Date.now() - bad[src] > 15000)) return Promise.reject();
     const c = SFX.ctx(); if (!c || !window.fetch) { bad[src] = 1; return Promise.reject(); }
     return wait[src] = fetch(src).then(r => { if (!r.ok) throw new Error('http'); return r.arrayBuffer(); })
-      .then(ab => new Promise((res, rej) => { const pr = c.decodeAudioData(ab, res, rej); if (pr && pr.catch) pr.catch(rej); }))
-      .then(b => { bufs[src] = b; wait[src] = null; return b; }).catch(e => { bad[src] = 1; wait[src] = null; throw e; });
+      .then(ab => new Promise((res, rej) => { if (typeof MOBILE_SOUND_FIX !== 'undefined' && MOBILE_SOUND_FIX) setTimeout(() => rej(new Error('slow')), 12000); const pr = c.decodeAudioData(ab, res, rej); if (pr && pr.catch) pr.catch(rej); }))
+      .then(b => { bufs[src] = b; wait[src] = null; return b; }).catch(e => { bad[src] = (typeof MOBILE_SOUND_FIX !== 'undefined' && MOBILE_SOUND_FIX) ? Date.now() : 1; wait[src] = null; throw e; });
   }
   function elPlay(src, vol, h) { try { const a = new Audio(src); a.volume = vol; a.play().catch(() => {}); h.el = a; } catch (e) {} } // fallback
   function play(src, o) {
@@ -11978,6 +11984,18 @@ if (SEARCH_TYPE_FIX) { const s = document.createElement('style'); s.textContent 
 function wshFilter() { const ov = $('cabws'); if (!ov) return; const q = (WSH.q || '').toLowerCase(); ov.querySelectorAll('[data-wo]').forEach(c => { const r = WSH.list.find(x => x.id === c.dataset.wo); c.style.display = !q || (r && String(r.name + ' ' + r.author).toLowerCase().includes(q)) ? '' : 'none'; }); }
 PATCH.unshift(['v1.74', 'fixes', ['Every hitter with the regular Bart / Bart Jr face plays the Bart / Bart Jr mad sound when he pops up', 'Phones: typing in the Workshop search box works']]);
 /*G19END*/
+/*G20START*/
+// ================= v1.75 · phone sound keeps working · switch in the "v1.75" script at the top =================
+function sndWake() { try { if (!MOBILE_SOUND_FIX || !SFX._unl) return; SFX.ctx(); } catch (e) {} }
+if (MOBILE_SOUND_FIX) {
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { sndWake(); setTimeout(sndWake, 400); } });
+  window.addEventListener('focus', sndWake); window.addEventListener('pageshow', sndWake);
+  ['touchstart', 'pointerup', 'click'].forEach(ev => document.addEventListener(ev, sndWake, { passive: true, capture: true }));
+  setInterval(() => { if (!document.hidden) sndWake(); }, 2000);
+  { const _bs20 = boothSpeak; boothSpeak = function (who, text, done) { return _bs20.call(this, who, text, function () { sndWake(); setTimeout(sndWake, 300); if (done) return done.apply(this, arguments); }); }; }
+}
+PATCH.unshift(['v1.75', 'phone sound fix', ['Phones: the sound doesn’t randomly die anymore. If it gets cut off (switching apps, locking the screen, a notification, the announcer voice), it comes right back', 'A sound that didn’t load on a bad connection tries again instead of staying silent all game']]);
+/*G20END*/
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
