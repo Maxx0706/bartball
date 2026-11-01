@@ -815,6 +815,11 @@ const PITCH_PICK_MOVE = true;      // phones: the pitch picker sits next to the 
 const JOY_TAP_CYCLE = true;        // phones: a quick tap on the joystick switches to your next pitch (instead of the ⟳ pitch button)
 const PINPOINT_PITCHING = true;    // Settings → Pitching: Meter or Pinpoint (like MLB The Show): every pitch type has its own gesture you trace with the mouse (PC) or the joystick (phone). The cleaner and better-timed, the more accurate
 </script>
+<script>
+// ================= v1.71 · true = on, false = how it was =================
+const RHYTHM_BART = true;          // Rhythm Game Bart: a hitter AND a pitcher who stand on dance pads. Every pitch is a rhythm game (arrows scroll up, tap them on the beat): nail it and he crushes it / paints the corner, miss and he slips and falls
+const RHYTHM_BPM = 128;            // how fast the arrows come
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -822,7 +827,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.70'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.71'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -11799,6 +11804,93 @@ function ppFrame() { if (!PP.on) { const w = $('ppw'); if (w && !w.hidden) w.hid
 PATCH.unshift(['v1.70', 'fixes + pinpoint pitching', ['Pinpoint pitching (Settings → Pitching): trace each pitch’s pattern with the mouse or the joystick, like MLB The Show', 'Tee Ball Timmy: no more 4-second wait after he swings',
   'Better graphics: a bright, thick pitch trail you can follow, and softer colors', 'Plate-view pitching camera: the ump gets out of the way', 'Phones: the pitch picker is next to the PITCH button, and a quick tap on the joystick switches pitches']]);
 /*G15END*/
+/*G16START*/
+// ================= v1.71 · Rhythm Game Bart (RHYTHM_BART) · switches in the "v1.71" script at the top =================
+const RHY_SLOT = 87, RHY_ST = 103;
+G5[RHY_SLOT] = ['rhythm', 'Rhythm Game Bart', 'Every pitch is a rhythm game. Nail the arrows and he crushes it. Miss and he eats it', () => RHYTHM_BART];
+HITTER_NAMES2[RHY_SLOT] = G5[RHY_SLOT][1]; LU_NOTE[RHY_SLOT] = G5[RHY_SLOT][2];
+if (RHYTHM_BART) { ARMS.push({ st: RHY_ST, name: 'Rhythm Game Bart', note: 'Every throw is a rhythm game. Hit the arrows: a perfect pitch. Miss: he slips' }); NEW_ARM_NAMES[RHY_ST] = 'Rhythm Game Bart'; }
+const rhyBatNow = () => !!(RHYTHM_BART && G.gs && G.g5 === 'rhythm'), rhyPitNow = () => !!(RHYTHM_BART && G.gs && G.gs.closer[pitchingIdx(G.gs)] === RHY_ST);
+// ---- looks: neon outfit + headphones, and the dance pads ----
+function rhyPhones(m) { const u = m.userData; if (u.rhyPh) return u.rhyPh; const g = new THREE.Group(), mat = new THREE.MeshLambertMaterial({ color: 0x111111 }), glow = new THREE.MeshBasicMaterial({ color: 0xff2bd6 });
+  const band = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.09, 6, 20, Math.PI), mat); band.position.y = 0.15; band.rotation.z = 0; g.add(band);
+  [-1, 1].forEach(sd => { const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.22, 14), mat); cup.rotation.z = Math.PI / 2; cup.position.set(sd * 1.0, 0.1, 0); g.add(cup); const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.05, 6, 16), glow); ring.rotation.y = Math.PI / 2; ring.position.set(sd * 1.12, 0.1, 0); g.add(ring); });
+  g.visible = false; u.head.add(g); return u.rhyPh = g; }
+function rhyLook(m, on) { const u = m.userData; if (!u || !u.jerseyMats) return; rhyPhones(m).visible = !!on; if (on) { u.jerseyMats.forEach(x => x.color.setHex(0x1a1033)); u.capMats.forEach(x => x.color.setHex(0xff2bd6)); } }
+var RPAD = {};
+function rhyArrowTex(dir, col) { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.fillStyle = '#16121f'; x.fillRect(0, 0, 128, 128); x.strokeStyle = '#3a3150'; x.lineWidth = 6; x.strokeRect(4, 4, 120, 120);
+  x.translate(64, 64); x.rotate({ L: Math.PI, D: Math.PI / 2, U: -Math.PI / 2, R: 0 }[dir]); x.fillStyle = col; x.beginPath(); x.moveTo(40, 0); x.lineTo(0, -36); x.lineTo(0, -16); x.lineTo(-38, -16); x.lineTo(-38, 16); x.lineTo(0, 16); x.lineTo(0, 36); x.closePath(); x.fill(); return new THREE.CanvasTexture(c); }
+const RHY_COL = { L: '#c04dff', D: '#2fd8ff', U: '#3dff6e', R: '#ff3b5c' };
+function rhyPad(key) { if (RPAD[key]) return RPAD[key]; const g = new THREE.Group(), base = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.2, 4.2), new THREE.MeshLambertMaterial({ color: 0x2b2738 })); base.position.y = 0.1; g.add(base); const tiles = {};
+  [['L', -1.35, 0], ['R', 1.35, 0], ['U', 0, -1.35], ['D', 0, 1.35]].forEach(([d, x, z]) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 1.25), new THREE.MeshBasicMaterial({ map: rhyArrowTex(d, RHY_COL[d]), color: 0x888888 })); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.21, z); g.add(m); tiles[d] = m; });
+  g.visible = false; scene.add(g); return RPAD[key] = { g, tiles, lit: {} }; }
+function rhyPadFrame() { const B = rhyPad('bat'), P = rhyPad('pit'); B.g.visible = rhyBatNow() && batter.visible && !['play', 'between'].includes(G.local); if (B.g.visible) { B.g.position.set(batter.position.x, 0, batter.position.z); B.g.rotation.y = batter.rotation.y; }
+  P.g.visible = rhyPitNow() && pitcherM.visible; if (P.g.visible) { P.g.position.set(pitcherM.position.x, Math.max(0, pitcherM.position.y - 0.85) + 0.75, pitcherM.position.z); P.g.rotation.y = 0; }
+  [B, P].forEach(Q => Object.keys(Q.tiles).forEach(d => { const k = Math.max(0, (Q.lit[d] || 0) - now()); Q.tiles[d].material.color.setScalar(0.55 + Math.min(1, k * 4) * 0.9); })); }
+{ const _s5_16 = styleN5; styleN5 = function (gs, bi, pi) { const r = _s5_16.apply(this, arguments); try { rhyLook(batter, G.g5 === 'rhythm' && RHYTHM_BART); rhyLook(pitcherM, gs.closer[pi] === RHY_ST && RHYTHM_BART); } catch (e) {} return r; }; }
+{ const _pvh16 = pvHitter; pvHitter = function (ch, slot, sp) { const m = _pvh16.apply(this, arguments); try { if (slot === RHY_SLOT) { const mm = m.userData && m.userData.body ? m : m.children.find(c => c.userData && c.userData.body); if (mm) rhyLook(mm, true); } } catch (e) {} return m; }; }
+{ const _pvp16 = pvPitcher; pvPitcher = function (ch, st, sp) { const m = _pvp16.apply(this, arguments); try { if (st === RHY_ST) { const mm = m.userData && m.userData.body ? m : m.children.find(c => c.userData && c.userData.body); if (mm) rhyLook(mm, true); } } catch (e) {} return m; }; }
+
+// ---- the rhythm game ----
+var RHY = null;
+const RHY_LANES = ['L', 'D', 'U', 'R'], RHY_GLYPH = { L: '◀', D: '▼', U: '▲', R: '▶' };
+(function () { const css = `#rhy { position: fixed; inset: 0; z-index: 58; pointer-events: none; } #rhy .rhyl { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); width: min(360px, 70vw); display: grid; grid-template-columns: repeat(4, 1fr); background: linear-gradient(180deg, rgba(10,6,24,.55), rgba(10,6,24,.2)); }
+#rhy .rec { position: absolute; top: 14%; width: 25%; text-align: center; font-size: clamp(30px, 7vmin, 52px); line-height: 1; opacity: .35; color: #fff; text-shadow: 0 0 10px #000; transition: opacity .08s, transform .08s; } #rhy .rec.hit { opacity: 1; transform: scale(1.25); }
+#rhy .note { position: absolute; width: 25%; text-align: center; font-size: clamp(30px, 7vmin, 52px); line-height: 1; filter: drop-shadow(0 0 8px currentColor); will-change: transform; }
+#rhy .jg { position: absolute; top: 26%; left: 0; right: 0; text-align: center; font-family: var(--display); font-size: clamp(24px, 6vmin, 40px); letter-spacing: .06em; text-shadow: 0 3px 10px #000; }
+#rhy .rhyb { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); width: min(420px, 92vw); display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; pointer-events: auto; }
+#rhy .rhyb button { height: min(84px, 20vh); border-radius: 14px; border: 2px solid currentColor; background: rgba(14,10,30,.82); font-size: 34px; touch-action: manipulation; } #rhy .rhyb button.on { background: currentColor; color: #120a20 !important; }
+#rhy .rhyt { position: absolute; top: calc(6px + env(safe-area-inset-top, 0px)); left: 0; right: 0; text-align: center; font-family: var(--cond); font-weight: 800; letter-spacing: .12em; color: #ff2bd6; text-shadow: 0 2px 8px #000; } body:not(.touch) #rhy .rhyb { display: none; }`; const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s); })();
+function rhyStart(who, title, onDone) { if (RHY) return; const beat = 60 / (typeof RHYTHM_BPM === 'number' ? RHYTHM_BPM : 128), notes = []; let t = 0.9, last = -1;
+  for (let i = 0; i < 7; i++) { let ln = Math.floor(Math.random() * 4); if (ln === last) ln = (ln + 1 + Math.floor(Math.random() * 3)) % 4; last = ln; notes.push({ lane: ln, t, j: null }); t += (i === 2 || i === 5) && Math.random() < 0.5 ? beat / 2 : beat; }
+  const ov = document.createElement('div'); ov.id = 'rhy'; ov.innerHTML = `<div class="rhyt">${title}</div><div class="rhyl">${RHY_LANES.map((d, i) => `<div class="rec" data-r="${i}" style="left:${i * 25}%;color:${RHY_COL[d]}">${RHY_GLYPH[d]}</div>`).join('')}${notes.map((n, i) => `<div class="note" data-n="${i}" style="left:${n.lane * 25}%;color:${RHY_COL[RHY_LANES[n.lane]]}">${RHY_GLYPH[RHY_LANES[n.lane]]}</div>`).join('')}<div class="jg"></div></div><div class="rhyb">${RHY_LANES.map((d, i) => `<button type="button" data-l="${i}" style="color:${RHY_COL[d]}">${RHY_GLYPH[d]}</button>`).join('')}</div>`;
+  document.body.appendChild(ov); ov.querySelectorAll('[data-l]').forEach(b => { b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); rhyPress(+b.dataset.l); b.classList.add('on'); setTimeout(() => b.classList.remove('on'), 90); }); });
+  RHY = { who, notes, t0: now(), end: t + 0.5, beatN: -1, beat, onDone, ov, last: null, falls: 0 }; SFX.blip(500); }
+function rhyJudge(n, txt, col, val) { n.j = val; const R = RHY, el = R.ov.querySelector('.jg'); el.textContent = txt; el.style.color = col; el.animate([{ transform: 'scale(1.3)' }, { transform: 'scale(1)' }], { duration: 160 }); const ne = R.ov.querySelector(`[data-n="${R.notes.indexOf(n)}"]`); if (ne) ne.style.visibility = 'hidden';
+  const d = RHY_LANES[n.lane], pad = rhyPad(R.who === 'bat' ? 'bat' : 'pit'); if (val > 0) { pad.lit[d] = now() + 0.25; R.last = { d, t: now() }; } else { R.last = { d: 'X', t: now() }; R.falls++; } }
+function rhyPress(lane) { const R = RHY; if (!R) return; const t = now() - R.t0, rec = R.ov.querySelector(`[data-r="${lane}"]`); if (rec) { rec.classList.add('hit'); setTimeout(() => rec.classList.remove('hit'), 90); }
+  let best = null; R.notes.forEach(n => { if (n.j == null && n.lane === lane && Math.abs(n.t - t) < 0.24 && (!best || Math.abs(n.t - t) < Math.abs(best.t - t))) best = n; });
+  if (!best) { try { SFX.blip(220); } catch (e) {} return; } const e = Math.abs(best.t - t);
+  if (e < 0.06) rhyJudge(best, 'PERFECT!', '#ffd23f', 1); else if (e < 0.11) rhyJudge(best, 'GREAT', '#3dff6e', 0.8); else if (e < 0.17) rhyJudge(best, 'GOOD', '#2fd8ff', 0.5); else rhyJudge(best, 'BAD', '#ff8a3c', 0.15);
+  try { SFX.blip(best.j >= 0.8 ? 1100 : best.j >= 0.5 ? 880 : 400); } catch (er) {} }
+window.addEventListener('keydown', e => { if (!RHY || e.repeat) return; const k = { ArrowLeft: 0, ArrowDown: 1, ArrowUp: 2, ArrowRight: 3, KeyD: 0, KeyF: 1, KeyJ: 2, KeyK: 3, KeyA: 0, KeyS: 1, KeyW: 2 }[e.code]; if (k == null && e.code !== 'Space') return; e.preventDefault(); e.stopImmediatePropagation(); if (k != null) rhyPress(k); }, true);
+function rhyFrame() { const R = RHY; if (!R) return; const t = now() - R.t0, h = R.ov.querySelector('.rhyl').clientHeight || innerHeight, recY = h * 0.14, sp = h * 0.62;
+  R.notes.forEach((n, i) => { const el = R.ov.querySelector(`[data-n="${i}"]`); if (el && n.j == null) el.style.transform = `translateY(${recY + (n.t - t) * sp}px)`; if (n.j == null && t > n.t + 0.2) rhyJudge(n, 'MISS', '#ff3b5c', 0); });
+  const bn = Math.floor((t - 0.9) / R.beat); if (bn !== R.beatN && t > 0.9 && t < R.end) { R.beatN = bn; try { SFX.blip(bn % 4 === 0 ? 300 : 240); } catch (e) {} }
+  if (t > R.end) { const score = R.notes.reduce((s, n) => s + (n.j || 0), 0) / R.notes.length, el = R.ov.querySelector('.jg'); el.textContent = score > 0.85 ? 'FULL COMBO!' : score > 0.6 ? 'NICE!' : score > 0.3 ? 'MEH' : 'FAIL'; el.style.color = score > 0.6 ? '#ffd23f' : '#ff3b5c';
+    const ov = R.ov, cb = R.onDone, who = R.who; RHY = null; setTimeout(() => ov.remove(), 450); if (score < 0.3) rhyFallStart(who === 'bat' ? batter : pitcherM); try { cb(score); } catch (e) { console.warn(e); } } }
+// ---- dancing on the pad, slipping ----
+var RFALL = null;
+function rhyFallStart(m) { RFALL = { m, t0: now() }; showBubble(m, ['WHOA!', 'OOF!', 'MY ANKLE!'][Math.floor(Math.random() * 3)], 1.4); try { SFX.groan(); SFX.pop(); } catch (e) {} }
+function rhyDance(m, R, t) { const a = m.userData, L = R && R.last && now() - R.last.t < 0.22 ? R.last.d : null, beat = R ? R.beat : 0.47, ph = (t / beat) % 1; a.body.position.y = Math.abs(Math.sin(ph * Math.PI)) * 0.25; a.body.rotation.set(0, Math.sin(t * 2) * 0.25, 0);
+  a.armL.rotation.set(-1.2 + Math.sin(t * 7) * 0.7, 0, 0.6); a.armR.rotation.set(-1.2 - Math.sin(t * 7) * 0.7, 0, -0.6); a.legL.rotation.set(0, 0, 0.1); a.legR.rotation.set(0, 0, -0.1);
+  if (L === 'L') a.legL.rotation.z = 0.6; if (L === 'R') a.legR.rotation.z = -0.6; if (L === 'U') a.legL.rotation.x = -0.8; if (L === 'D') a.legR.rotation.x = 0.7; if (L === 'X') { a.body.rotation.z = 0.35; a.armL.rotation.set(-2.6, 0, 1.2); a.armR.rotation.set(-2.6, 0, -1.2); } }
+function rhyPoseFrame() { const t = now(); if (RHY) { const m = RHY.who === 'bat' ? batter : pitcherM; rhyDance(m, RHY, t); if (m === batter) batPivot.visible = false; }
+  if (!RHY && G.rhyCpu && t < G.rhyCpu.until) { rhyDance(G.rhyCpu.m, { beat: 60 / RHYTHM_BPM, last: Math.random() < 0.05 ? { d: RHY_LANES[Math.floor(Math.random() * 4)], t } : null }, t); if (G.rhyCpu.m === batter) batPivot.visible = false; } else if (G.rhyCpu && t >= G.rhyCpu.until) { if (G.rhyCpu.m === batter) { batPivot.visible = true; } G.rhyCpu = null; }
+  if (RFALL) { const u = t - RFALL.t0, a = RFALL.m.userData, k = Math.min(1, u / 0.25); if (u > 1.8) { a.body.rotation.set(0, 0, 0); a.body.position.y = 0; if (RFALL.m === batter && ['aim', 'windup', 'flight'].includes(G.local)) batPivot.visible = true; RFALL = null; } else { a.body.rotation.set(-1.25 * k, 0, 0.2 * k); a.body.position.y = -1.0 * k; a.legL.rotation.x = -0.9 * k; a.legR.rotation.x = -0.6 * k; } } }
+
+// ---- batting: the rhythm game picks how good his swing is ----
+{ const _bp16 = beginPitch; beginPitch = function (p) { const r = _bp16.apply(this, arguments); try { if (rhyBatNow() && p && !p.tee) { G.rhyBat = null;
+      if (iBat() && !G.autoMe) { G.rhyHold = true; G.windupT0 = now() + 30; rhyStart('bat', '🎵 RHYTHM GAME: HIT THE ARROWS 🎵', score => { G.rhyHold = false; G.windupT0 = now(); G.rhyBat = { score, p }; }); }
+      else if (sideIsBotSafe(battingIdx(G.gs)) || G.autoMe) { const score = 0.25 + Math.random() * 0.75; G.rhyCpu = { m: batter, until: now() + windupDur() * 0.9 }; if (score < 0.3) { G.botSwing = null; G.myAuto = null; setTimeout(() => { if (G.gs) rhyFallStart(batter); }, windupDur() * 800); } else if (G.botSwing || G.myAuto) { const S = G.botSwing || G.myAuto, e = 1 - score; S.bx += gauss() * 0.5 * e; S.by += gauss() * 0.45 * e; S.at += gauss() * 0.08 * e; } } }
+    if (rhyPitNow() && !iPitch() && p) { G.rhyCpu = { m: pitcherM, until: now() + windupDur() * 0.85 }; if (p.rhySlip) setTimeout(() => { if (G.gs) rhyFallStart(pitcherM); }, windupDur() * 1000 + 150); } } catch (e) { console.warn(e); } return r; }; }
+function rhyBatFrame() { if (!G.gs) return; if (G.rhyHold && G.local === 'windup') { G.windupT0 = Math.max(G.windupT0, now() + 5); poseIdle(pitcherM); } // the pitcher waits for the song
+  const B = G.rhyBat; if (B && G.local === 'flight' && G.pitch === B.p && !G.swung && !B.done) { const p = B.p, e = 1 - B.score; if (B.score < 0.3) { B.done = true; return; } // he fell: no swing
+    if (B.at == null) { B.at = p.D - swingLag() + gauss() * 0.09 * e + (Math.random() < 0.5 ? -1 : 1) * 0.07 * e; B.bx = p.tx + gauss() * 0.55 * e; B.by = p.ty + gauss() * 0.5 * e; }
+    if (now() - G.flightT0 >= B.at) { B.done = true; try { doSwing(B.bx, B.by, true); } catch (er) {} } }
+  if (B && G.local !== 'flight' && G.local !== 'windup') G.rhyBat = null; }
+{ const _ds16 = doSwing; doSwing = function (bx, by, auto) { if (rhyBatNow() && iBat() && !auto && !G.autoMe) return; return _ds16.apply(this, arguments); }; }
+// ---- pitching: the rhythm game picks how accurate the throw is ----
+{ const _pp16 = pitchPress; pitchPress = function () { if (rhyPitNow() && G.gs && iPitch() && G.local === 'aim' && !G.meter && !(G.penOpen && G.gs.askPen != null)) { if (RHY) return; const a = { x: G.aim.x, y: G.aim.y }, type = G.ptype; G.rhyAim = a; if (G.aimT0) G.aimT0 = now();
+      rhyStart('pitch', '🎵 RHYTHM GAME: NAIL THE ARROWS TO THROW 🎵', score => { G.rhyAim = null; if (!G.gs || G.local !== 'aim' || !iPitch()) return; const opts = pitchOpts(), acc = clamp(0.08 + 0.92 * score, 0, 1); if (score < 0.3) { opts.forceWild = true; showCall('HE SLIPPED ON THE PAD!', true); } throwPitch(makePitch(G.gs.pn, type, a.x, a.y, acc, opts)); }); return; } return _pp16.apply(this, arguments); }; }
+function rhyAimFrame() { if (G.rhyAim && RHY && RHY.who === 'pitch') { G.aim.x = G.rhyAim.x; G.aim.y = G.rhyAim.y; } }
+// the CPU's Rhythm Bart: rolls his own score
+{ const _mp16 = makePitch; makePitch = function (n, type, aimX, aimY, acc, opts) { const out = _mp16.apply(this, arguments); try { if (RHYTHM_BART && opts && opts.stage === RHY_ST && G.gs && !G._pv && !iPitch() && !out.tee) { const score = 0.3 + Math.random() * 0.7, e = 1 - score; out.tx = +clamp(out.tx + gauss() * 0.6 * e, -3, 3).toFixed(3); out.ty = +clamp(out.ty + gauss() * 0.5 * e, 0.2, 7).toFixed(3); if (score < 0.38 && Math.random() < 0.5) { out.rhySlip = 1; out.wild = true; out.ty = +rnd(0.1, 0.5).toFixed(2); } } } catch (e) {} return out; }; }
+{ const _tm16 = toMenu; toMenu = function () { try { if (RHY) { RHY.ov.remove(); RHY = null; } G.rhyHold = false; G.rhyBat = null; G.rhyCpu = null; RFALL = null; } catch (e) {} return _tm16.apply(this, arguments); }; }
+{ const _sf16 = stadiumFrame; stadiumFrame = function (t, dt) { _sf16(t, dt); [rhyFrame, rhyBatFrame, rhyAimFrame, rhyPoseFrame, rhyPadFrame].forEach(f => { try { f(); } catch (e) {} }); }; }
+PATCH.unshift(['v1.71', 'Rhythm Game Bart', ['New hitter AND pitcher: Rhythm Game Bart. He stands on a dance pad and every pitch is a rhythm game: arrows scroll up, tap them on the beat (arrow keys / D F J K on PC, the 4 buttons on a phone)',
+  'Batting: the better your timing, the better his swing. Pitching: the better your timing, the more accurate the throw', 'He dances on the pad the whole time, and if you blow it he slips and falls']]);
+/*G16END*/
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
