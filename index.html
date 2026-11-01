@@ -831,6 +831,11 @@ const GFX_COMET_TRAIL = true;      // Better graphics: the pitch trail is a glow
 const GFX_GRASS = true;            // Better graphics: real grass blades on all the grass, swaying in the wind
 const CONTROL_MASTER = true;       // Control Master: a pitcher whose tap-pitching target doesn't wobble at all, with a huge Perfect window, pinpoint pitches, and the strike zone stays up while he throws
 </script>
+<script>
+// ================= v1.74 · true = on, false = how it was =================
+const MAD_DEFAULT_FACES = true;    // every hitter who still has the regular Bart / Bart Jr face plays the Bart / Bart Jr mad sound on a pop-up (not just the ones in MAD_SLOTS)
+const SEARCH_TYPE_FIX = true;      // phones: typing in the Workshop search box works (the keyboard doesn't close after every letter)
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -838,7 +843,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.73'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.74'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -4767,7 +4772,7 @@ function callNow(P) {
     { const f = res.f; if (f && f.result === 'out' && (f.how === 'pop' || (f.how === 'fly' && G.gs.bases.some(Boolean)))) { const sl = slotOf(G.gs, battingIdx(G.gs)), url = typeof BABE_POPUP === 'string' ? BABE_POPUP.trim() : '';
       if (sl === 3 && (typeof BABE_PODIUM === 'undefined' || BABE_PODIUM)) P.babePod = true; // Babe Ruth takes the podium (his sound plays there)
       else if (sl === 3 && url) urlClip.play(normFaceUrl(url)); // Babe Ruth has his own
-      else if ((typeof MAD_SLOTS !== 'undefined' ? MAD_SLOTS : [0, 7]).includes(sl)) madSfx.play(bc); } } // batter's team gets mad; both players hear it
+      else if ((typeof MAD_SLOTS !== 'undefined' ? MAD_SLOTS : [0, 7]).includes(sl) || (typeof madDefaultFace === 'function' && madDefaultFace())) madSfx.play(bc); } } // batter's team gets mad; both players hear it
     say(/CATCH/.test(o.call) ? 'catch' : 'out', pc); }
   else if (o.call === 'WALK' || o.call === 'HIT BY PITCH') say('walk', bc);
   else if (o.call === 'FOUL BALL') say('foul', bc);
@@ -11611,7 +11616,7 @@ function wshDraw() { const ov = $('cabws'); if (!ov || ov.dataset.view !== 'wsh'
       ${WSH.err ? `<p class="note" style="color:#ffb72b">${WSH.err}</p>` : ''}${WSH.busy ? '<p class="note">Loading…</p>' : ''}
       <div class="cabcards">${list.map(r => { const C = wshCard(r); return `<div class="cabcard" style="--jc:${C.jer}" data-wo="${wshEsc(r.id)}"><div class="cabthumb">${MED_OK(r.face) ? `<img src="${r.face}" alt="">` : `<b>${wshEsc(r.name).slice(0, 1)}</b>`}</div><div class="cabinfo"><b>${wshEsc(r.name)}</b><small>${wshSub(r, C)} · by ${wshEsc(r.author)} · ⬇ ${r.dl || 0}${r.hasSong ? ' · 🎵' : ''}${have.has(r.id) ? ' · ✔ on your team' : ''}</small></div><div class="cabbtns"><button type="button" data-wdl="${wshEsc(r.id)}">⬇</button></div></div>`; }).join('') || (WSH.busy || WSH.err ? '' : '<p class="note">Nothing here yet. Be the first: hit Publish on one of yours.</p>')}</div>`;
   ov.innerHTML = `<div class="dhead">🌐 Workshop<button type="button" class="pclose" data-w="home" aria-label="Back">✕</button></div><p class="note">Everybody’s Create-A-Barts and hitters. Tap one to see him, ⬇ to put him on your team.${u ? '' : ' Log in to publish your own.'}</p>${body}`;
-  const q = ov.querySelector('#wshq'); if (q) { q.addEventListener('input', () => { WSH.q = q.value; const pos = q.selectionStart; wshDraw(); const q2 = $('wshq'); if (q2) { q2.focus(); try { q2.setSelectionRange(pos, pos); } catch (e) {} } }); q.addEventListener('keydown', e => e.stopPropagation()); }
+  const q = ov.querySelector('#wshq'); if (q) { q.addEventListener('input', () => { WSH.q = q.value; if (typeof SEARCH_TYPE_FIX !== 'undefined' && SEARCH_TYPE_FIX) { wshFilter(); return; } const pos = q.selectionStart; wshDraw(); const q2 = $('wshq'); if (q2) { q2.focus(); try { q2.setSelectionRange(pos, pos); } catch (e) {} } }); q.addEventListener('keydown', e => e.stopPropagation()); }
   ov.querySelectorAll('[data-wt]').forEach(b => b.addEventListener('click', () => { WSH.tab = b.dataset.wt; wshLoad(); }));
   ov.querySelectorAll('[data-wk]').forEach(b => b.addEventListener('click', () => { WSH.kind = b.dataset.wk; wshDraw(); }));
   ov.querySelectorAll('[data-wo]').forEach(c => c.addEventListener('click', e => { if (e.target.closest('button')) return; WSH.open = c.dataset.wo; wshDraw(); }));
@@ -11911,7 +11916,7 @@ PATCH.unshift(['v1.71', 'Rhythm Game Bart', ['New hitter AND pitcher: Rhythm Gam
   const scrollable = el => { for (let n = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) { if (n.tagName === 'INPUT' || n.tagName === 'TEXTAREA' || n.tagName === 'SELECT') return true; const cs = getComputedStyle(n); if ((/(auto|scroll)/.test(cs.overflowY) && n.scrollHeight > n.clientHeight + 1) || (/(auto|scroll)/.test(cs.overflowX) && n.scrollWidth > n.clientWidth + 1)) return true; } return false; };
   document.addEventListener('touchmove', e => { if (e.touches && e.touches.length > 1) { e.preventDefault(); return; } if (!scrollable(e.target)) e.preventDefault(); }, { passive: false });
   ['gesturestart', 'gesturechange'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
-  const back = () => { if (window.scrollX || window.scrollY) window.scrollTo(0, 0); }; window.addEventListener('scroll', back, { passive: true }); if (window.visualViewport) window.visualViewport.addEventListener('scroll', back, { passive: true }); })();
+  const back = () => { if (typeof SEARCH_TYPE_FIX !== 'undefined' && SEARCH_TYPE_FIX && document.activeElement && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return; if (window.scrollX || window.scrollY) window.scrollTo(0, 0); }; window.addEventListener('scroll', back, { passive: true }); if (window.visualViewport) window.visualViewport.addEventListener('scroll', back, { passive: true }); })();
 PATCH.unshift(['v1.72', 'phone fixes', ['iPhone: dragging on the screen doesn’t slide the page anymore, so the buttons stay where you tap them', 'Settings: Graphics, FPS counter, Pitching and Announcers’ voices light up the option you pick right away']]);
 /*G17END*/
 /*G18START*/
@@ -11962,6 +11967,17 @@ function cmFrame() { if (!cmNow()) return; if (['windup', 'flight'].includes(G.l
 { const _sf18 = stadiumFrame; stadiumFrame = function (t, dt) { _sf18(t, dt); try { cometFrame(); } catch (e) {} try { grassFrame(t); } catch (e) {} try { cmFrame(); } catch (e) {} }; }
 PATCH.unshift(['v1.73', 'grass, comet trail, Control Master', ['Better graphics: real grass blades swaying in the wind, and the pitch trail is a glowing comet (no more coils)', 'New pitcher: Control Master. His tap-pitching target doesn’t wobble at all, he has a huge Perfect window, his pitches go exactly where he aims, and the strike zone stays up while he throws']]);
 /*G18END*/
+/*G19START*/
+// ================= v1.74 · pop-up sound for regular faces, Workshop search on phones · switches in the "v1.74" script at the top =================
+var MDF = { v: false };
+function mdfLook() { try { const u = batter.userData, f = u && u.face; if (!G.gs || !f || !batter.visible) return false; if (u.head && !u.head.visible) return false; return f.material.map === faceTex[charOf(battingIdx(G.gs))]; } catch (e) { return false; } }
+function madDefaultFace() { return !!(MAD_DEFAULT_FACES && G.gs && MDF.v); }
+{ const _sf19 = stadiumFrame; stadiumFrame = function (t, dt) { _sf19(t, dt); try { if (['windup', 'flight'].includes(G.local)) MDF.v = mdfLook(); } catch (e) {} }; }
+if (SEARCH_TYPE_FIX) { const s = document.createElement('style'); s.textContent = 'input, textarea, [contenteditable] { -webkit-user-select: text !important; user-select: text !important; -webkit-touch-callout: default; }'; document.head.appendChild(s); }
+{ const _wd19 = wshDraw; wshDraw = function () { if (!SEARCH_TYPE_FIX) return _wd19.apply(this, arguments); const q = WSH.q; WSH.q = ''; try { _wd19.apply(this, arguments); } finally { WSH.q = q; } const i = $('wshq'); if (i) i.value = q || ''; wshFilter(); }; }
+function wshFilter() { const ov = $('cabws'); if (!ov) return; const q = (WSH.q || '').toLowerCase(); ov.querySelectorAll('[data-wo]').forEach(c => { const r = WSH.list.find(x => x.id === c.dataset.wo); c.style.display = !q || (r && String(r.name + ' ' + r.author).toLowerCase().includes(q)) ? '' : 'none'; }); }
+PATCH.unshift(['v1.74', 'fixes', ['Every hitter with the regular Bart / Bart Jr face plays the Bart / Bart Jr mad sound when he pops up', 'Phones: typing in the Workshop search box works']]);
+/*G19END*/
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
