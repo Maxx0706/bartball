@@ -866,6 +866,11 @@ const OHTANISWINGFIX = true;       // Ohtani's real stance: tall and calm, bat s
 const LINEUP_KEEP_FIX = true;      // your saved lineup and starting pitcher come back exactly as you left them (new hitters like Ohtani, Crusher, Rhythm Bart and new pitchers like Control Master used to get bumped back to the classic order when the page loaded, and the bumped lineup got saved over yours)
 window._luBooting = true;          // (no lineup saving until the whole game has loaded)
 </script>
+<script>
+// ================= v1.81 · true = on, false = how it was =================
+const PINPOINT_V2 = true;          // pinpoint pitching on phones: a smaller pad up top, the stick reaches the dots easily (it used to score 0% because a full push went past the green dot), and the pitcher goes into his windup while you trace, letting it go when you finish
+const VOICE_RETRY = true;          // announcers: if the chosen voice doesn't talk, the same line is tried again right away with the phone's own default voice (it used to give up on the phone voice for the whole game after one miss)
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -873,7 +878,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.80'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.81'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -11553,11 +11558,12 @@ function ttsOnline(who, text, fin) { try { const a = tts3Audio(); a.onended = ()
     setTimeout(fin, 2200 + text.length * 85); // (the words stay up long enough to read even if no voice plays)
     if (mode === 'off') return; const S = window.speechSynthesis, canDev = !!(S && window.SpeechSynthesisUtterance);
     if (mode === 'online' || !canDev || (mode === 'on' && TTS3.broken)) { ttsOnline(who, text, fin); return; }
-    let started = false, ended = false; const go = () => { try { const u = new SpeechSynthesisUtterance(text), all = S.getVoices() || [], en = all.filter(v => /^en/i.test(v.lang)), loc = en.filter(v => v.localService), vs = loc.length ? loc : en;
-        if (vs.length) u.voice = vs[Math.min(who, vs.length - 1)]; u.lang = (u.voice && u.voice.lang) || 'en-US'; u.pitch = CALLERS[who].pitch; u.rate = CALLERS[who].rate; u.volume = 1;
-        u.onstart = () => { started = true; }; u.onend = () => { ended = true; setTimeout(fin, 250); }; u.onerror = () => { ended = true; if (!started && mode === 'on') { TTS3.broken = true; ttsOnline(who, text, fin); } else fin(); };
+    let started = false, ended = false, att = 0; const VR = typeof VOICE_RETRY !== 'undefined' && VOICE_RETRY; const go = (plain) => { const id = ++att; started = false; ended = false; try { const u = new SpeechSynthesisUtterance(text), all = S.getVoices() || [], en = all.filter(v => /^en/i.test(v.lang)), loc = en.filter(v => v.localService), vs = loc.length ? loc : en;
+        if (vs.length && !plain) u.voice = vs[Math.min(who, vs.length - 1)];
+        const retry = () => { if (VR && !plain && u.voice) { try { if (typeof voiceBad === 'function') voiceBad(u.voice, 'did not talk'); S.cancel(); } catch (e) {} setTimeout(() => go(true), 120); return true; } return false; }; u.lang = (u.voice && u.voice.lang) || 'en-US'; u.pitch = CALLERS[who].pitch; u.rate = CALLERS[who].rate; u.volume = 1;
+        u.onstart = () => { if (id === att) started = true; }; u.onend = () => { if (id !== att) return; ended = true; setTimeout(fin, 250); }; u.onerror = () => { if (id !== att) return; ended = true; if (!started && mode === 'on') { if (retry()) return; TTS3.broken = true; ttsOnline(who, text, fin); } else fin(); };
         (window._ttsKeep = window._ttsKeep || []).push(u); if (window._ttsKeep.length > 6) window._ttsKeep.shift(); if (S.paused) S.resume(); S.speak(u);
-        setTimeout(() => { if (!started && !ended && mode === 'on') { TTS3.broken = true; try { S.cancel(); } catch (e) {} ttsOnline(who, text, fin); } }, 1600); } catch (e) { if (mode === 'on') ttsOnline(who, text, fin); else fin(); } };
+        setTimeout(() => { if (id !== att) return; if (!started && !ended && mode === 'on') { if (retry()) return; TTS3.broken = true; try { S.cancel(); } catch (e) {} ttsOnline(who, text, fin); } }, VR ? 2200 : 1600); } catch (e) { if (mode === 'on') ttsOnline(who, text, fin); else fin(); } };
     setTimeout(go, S.speaking || S.pending ? 160 : 70); }; }
 { const _bt12 = boothTalk; boothTalk = function () { try { if (TTS3.a && !TTS3.a.paused) TTS3.a.pause(); } catch (e) {} return _bt12.apply(this, arguments); }; }
 { const _tm12 = toMenu; toMenu = function () { try { if (TTS3.a) TTS3.a.pause(); } catch (e) {} return _tm12.apply(this, arguments); }; }
@@ -11822,10 +11828,10 @@ function ppResample(pts, n) { const d = [0]; for (let i = 1; i < pts.length; i++
 function ppStart() { const gs = G.gs; if (!gs) return; const sh = PP_SHAPES[G.ptype] || PP_SHAPES.FB; PP = { on: true, sh, type: G.ptype, aim: { x: G.aim.x, y: G.aim.y }, t0: now(), started: 0, trace: [], cur: [0, 0], tgtL: ppResample(sh.pts, 32).L };
   let w = $('ppw'); if (!w) { w = document.createElement('div'); w.id = 'ppw'; w.innerHTML = '<b></b><canvas width="260" height="260"></canvas>'; document.body.appendChild(w); } w.hidden = false; w.querySelector('b').textContent = `${(pitchById(G.ptype).name || 'Pitch').toUpperCase()}: ${sh.n.toUpperCase()}`;
   if (G.aimT0) G.aimT0 = now(); SFX.blip(600); }
-function ppCursor() { if (TOUCH) return [JOY.x || 0, JOY.y || 0]; const w = $('ppw'); if (!w || PP.mx == null) return PP.cur; const r = w.getBoundingClientRect(), R = r.width / 2; return [clamp((PP.mx - r.left - R) / (R * 0.9), -1.2, 1.2), clamp((PP.my - r.top - R) / (R * 0.9), -1.2, 1.2)]; }
+function ppCursor() { if (TOUCH) { const k = (typeof PINPOINT_V2 !== 'undefined' && PINPOINT_V2) ? 0.8 : 1; return [(JOY.x || 0) * k, (JOY.y || 0) * k]; } const w = $('ppw'); if (!w || PP.mx == null) return PP.cur; const r = w.getBoundingClientRect(), R = r.width / 2; return [clamp((PP.mx - r.left - R) / (R * 0.9), -1.2, 1.2), clamp((PP.my - r.top - R) / (R * 0.9), -1.2, 1.2)]; }
 window.addEventListener('mousemove', e => { if (PP.on) { PP.mx = e.clientX; PP.my = e.clientY; } }, true);
 function ppFinish(timeout) { const sh = PP.sh, T = PP.trace; let shape = 0, tempo = 0;
-  if (T.length > 3) { const tr = ppResample(T.map(q => [q[0], q[1]]), 32), tg = ppResample(sh.pts, 32); let err = 0; for (let i = 0; i < 32; i++) err += Math.hypot(tr.out[i][0] - tg.out[i][0], tr.out[i][1] - tg.out[i][1]); err /= 32; shape = clamp(1 - err / 0.42, 0, 1) * clamp(tr.L / (tg.L * 0.75), 0, 1);
+  if (T.length > 3) { const tr = ppResample(T.map(q => [q[0], q[1]]), 32), tg = ppResample(sh.pts, 32); let err = 0; for (let i = 0; i < 32; i++) err += Math.hypot(tr.out[i][0] - tg.out[i][0], tr.out[i][1] - tg.out[i][1]); err /= 32; shape = clamp(1 - err / ((typeof PINPOINT_V2 !== 'undefined' && PINPOINT_V2 && TOUCH) ? 0.55 : 0.42), 0, 1) * clamp(tr.L / (tg.L * ((typeof PINPOINT_V2 !== 'undefined' && PINPOINT_V2 && TOUCH) ? 0.65 : 0.75)), 0, 1);
     const dur = T[T.length - 1][2] - T[0][2]; tempo = clamp(1 - Math.abs(dur - sh.T) / (sh.T * 1.1), 0, 1); }
   const acc = clamp(0.1 + 0.9 * (0.72 * shape + 0.28 * tempo), 0, 1), a = PP.aim; PP.on = false; const w = $('ppw'); if (w) w.hidden = true;
   const grade = acc > 0.9 ? 'Perfect' : acc > 0.72 ? 'Good' : acc > 0.5 ? 'Okay' : 'Poor'; try { const el = $('swingfb'), cls = grade === 'Perfect' ? 'perf' : grade === 'Good' ? 'good' : 'bad'; el.innerHTML = `<span><small>Pinpoint</small><b class="${cls}">${grade}</b></span><span><small>Shape · tempo</small><b class="${cls}">${Math.round(shape * 100)}% · ${Math.round(tempo * 100)}%</b></span>`; el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); clearTimeout(showSwingFb.t); showSwingFb.t = setTimeout(() => el.hidden = true, 1800); } catch (e) {}
@@ -11833,9 +11839,9 @@ function ppFinish(timeout) { const sh = PP.sh, T = PP.trace; let shape = 0, temp
 function ppFrame() { if (!PP.on) { const w = $('ppw'); if (w && !w.hidden) w.hidden = true; return; } if (!G.gs || G.local !== 'aim' || !iPitch()) { PP.on = false; return; }
   G.aim.x = PP.aim.x; G.aim.y = PP.aim.y; if (G.aimRaw) { G.aimRaw.x = PP.aim.x; G.aimRaw.y = PP.aim.y; } // (the aim is locked while you trace: no wobble)
   const c = ppCursor(), t = now(), sh = PP.sh, s0 = sh.pts[0], end = sh.pts[sh.pts.length - 1]; PP.cur = c;
-  if (!PP.started) { if (Math.hypot(c[0] - s0[0], c[1] - s0[1]) < 0.28) { PP.started = t; PP.trace = [[c[0], c[1], t]]; } }
+  if (!PP.started) { if (Math.hypot(c[0] - s0[0], c[1] - s0[1]) < ((typeof PINPOINT_V2 !== 'undefined' && PINPOINT_V2 && TOUCH) ? 0.42 : 0.28)) { PP.started = t; PP.trace = [[c[0], c[1], t]]; } }
   else { const L = PP.trace[PP.trace.length - 1]; if (Math.hypot(c[0] - L[0], c[1] - L[1]) > 0.02) PP.trace.push([c[0], c[1], t]); let len = 0; for (let i = 1; i < PP.trace.length; i++) len += Math.hypot(PP.trace[i][0] - PP.trace[i - 1][0], PP.trace[i][1] - PP.trace[i - 1][1]);
-    if (len > PP.tgtL * 0.7 && Math.hypot(c[0] - end[0], c[1] - end[1]) < 0.24) { ppFinish(false); return; } if (t - PP.started > 2.6) { ppFinish(true); return; } }
+    if (len > PP.tgtL * 0.7 && Math.hypot(c[0] - end[0], c[1] - end[1]) < ((typeof PINPOINT_V2 !== 'undefined' && PINPOINT_V2 && TOUCH) ? 0.34 : 0.24)) { ppFinish(false); return; } if (t - PP.started > 2.6) { ppFinish(true); return; } }
   if (t - PP.t0 > 5) { ppFinish(true); return; }
   // draw it
   const cv = $('ppw') && $('ppw').querySelector('canvas'); if (!cv) return; const x = cv.getContext('2d'), W = cv.width, R = W / 2 * 0.9, P = q => [W / 2 + q[0] * R, W / 2 + q[1] * R]; x.clearRect(0, 0, W, W);
@@ -11845,7 +11851,7 @@ function ppFrame() { if (!PP.on) { const w = $('ppw'); if (w && !w.hidden) w.hid
   const sp = P(s0), ep = P(end); x.fillStyle = '#39ff6a'; x.beginPath(); x.arc(sp[0], sp[1], 11, 0, Math.PI * 2); x.fill(); x.strokeStyle = '#ffd23f'; x.lineWidth = 4; x.beginPath(); x.arc(ep[0], ep[1], 13, 0, Math.PI * 2); x.stroke();
   if (PP.trace.length > 1) { x.strokeStyle = '#fff'; x.lineWidth = 6; x.beginPath(); PP.trace.forEach((q, i) => { const p = P(q); i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.stroke(); }
   const cp = P(c); x.fillStyle = PP.started ? '#fff' : 'rgba(255,255,255,.6)'; x.beginPath(); x.arc(cp[0], cp[1], 8, 0, Math.PI * 2); x.fill();
-  if (!PP.started) { x.fillStyle = '#fff'; x.font = '700 15px "Barlow Condensed", Arial'; x.textAlign = 'center'; x.fillText(TOUCH ? 'Push the stick to the green dot' : 'Move the mouse to the green dot', W / 2, W - 18); } }
+  if (!PP.started) { x.fillStyle = '#fff'; x.font = '700 15px "Barlow Condensed", Arial'; x.textAlign = 'center'; x.fillText(TOUCH ? ((typeof PINPOINT_V2 !== 'undefined' && PINPOINT_V2) ? 'Stick to the green dot' : 'Push the stick to the green dot') : 'Move the mouse to the green dot', W / 2, W - 18); } }
 { const _pp15 = pitchPress; pitchPress = function () { if (ppMode() && G.gs && iPitch() && G.local === 'aim' && !G.meter && !(G.penOpen && G.gs.askPen != null)) { if (!PP.on) ppStart(); return; } return _pp15.apply(this, arguments); }; }
 { const _op15 = openProfile; openProfile = function (tab) { const r = _op15.apply(this, arguments); try { if (PINPOINT_PITCHING && $('profbody') && (tab === 'set' || (!tab && $('psegbatView'))) && !$('psegpitchMode')) { const pr = profPrefs() || {}, d = document.createElement('div'); d.innerHTML = '<div class="label">Pitching</div><div class="seg" id="psegpitchMode"></div><p class="note">Pinpoint (like MLB The Show): after you press Pitch, trace the pitch’s pattern: with the mouse on PC, with the joystick on a phone. Clean shape + good tempo = right on the spot.</p>'; $('profbody').appendChild(d);
       seg('psegpitchMode', [['meter', 'Meter (classic)'], ['pinpoint', 'Pinpoint']], pr.pitchMode === 'pinpoint' ? 'pinpoint' : 'meter', v => profSetPref('pitchMode', v)); } } catch (e) {} return r; }; }
@@ -12162,6 +12168,19 @@ function luRestore() { if (!LINEUP_KEEP_FIX) return; let src = null;
 try { luRestore(); } catch (e) { window._luBooting = false; console.warn(e); }
 PATCH.unshift(['v1.80', 'lineup fix', ['Your lineup and starting pitcher stay exactly how you left them after a reload (new hitters and pitchers used to get bumped back to the classic spots)']]);
 /*G25END*/
+/*G26START*/
+// ================= v1.81 · pinpoint on phones, announcer retry · switches in the "v1.81" script at the top =================
+if (PINPOINT_V2) { const st = document.createElement('style'); st.textContent = `body.touch #ppw { width: min(150px, 34vmin) !important; top: 36% !important; } body.touch #ppw b { font-size: 12px; top: -18px; left: 50%; right: auto; transform: translateX(-50%); white-space: nowrap; }`; document.head.appendChild(st); }
+// the pitcher winds up while you trace: the windup follows how far along the pattern you are, and the pitch picks up from there when you finish
+var PPW = { u: 0 };
+function ppWindFrame() { if (!PINPOINT_V2) return; if (!PP.on) return; if (!G.gs || G.local !== 'aim') return; let k = 0;
+  if (PP.started && PP.trace.length > 1) { let len = 0; for (let i = 1; i < PP.trace.length; i++) len += Math.hypot(PP.trace[i][0] - PP.trace[i - 1][0], PP.trace[i][1] - PP.trace[i - 1][1]); k = clamp(len / (PP.tgtL || 1), 0, 1); }
+  PPW.u = Math.max(PPW.u, 0.82 * k); if (PPW.u > 0.001) { try { windupPose(PPW.u); } catch (e) {} } }
+{ const _ppS26 = ppStart; ppStart = function () { PPW.u = 0; return _ppS26.apply(this, arguments); }; }
+{ const _bp26 = beginPitch; beginPitch = function (p) { const u0 = PPW.u; const r = _bp26.apply(this, arguments); try { if (PINPOINT_V2 && u0 > 0.05 && G.local === 'windup' && G.windupT0 && G.windupT0 <= now() + 0.05) G.windupT0 = now() - u0 * windupDur(); } catch (e) {} PPW.u = 0; return r; }; }
+{ const _sf26 = stadiumFrame; stadiumFrame = function (t, dt) { _sf26(t, dt); try { ppWindFrame(); } catch (e) {} }; }
+PATCH.unshift(['v1.81', 'pinpoint on phones, announcers', ['Pinpoint on phones: a smaller pad, the stick reaches the dots (no more 0%), and your pitcher goes into his windup while you trace', 'Announcers: if a voice doesn’t talk, the line is tried again with your phone’s own voice instead of going quiet']]);
+/*G26END*/
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
