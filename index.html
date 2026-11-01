@@ -855,6 +855,12 @@ const PHONE_AUDIO_REVIVE = true;   // phones: a watchdog checks the sound is rea
 // ================= v1.78 · true = on, false = how it was =================
 const LINEUP_SPOT_BTN = true;      // lineup screen: every hitter gets a button. Tap it, then tap a spot (1st to 9th) to put him there. A bench guy takes that spot and the hitter there goes to the bench. Dragging still works too
 </script>
+<script>
+// ================= v1.79 · true = on, false = how it was =================
+const MORE_BTN_FIX = true;         // phones: the More and Quit buttons sit a little lower and bigger, away from the very top edge (on iPhone a tap up there just brings back Safari's bars), and More opens on touch
+const VOICE_SAFETY = true;         // announcers: a voice that doesn't work on this phone (some joke voices aren't really installed) is noticed and never picked again, so the announcers don't go silent
+const OHTANISWINGFIX = true;       // Ohtani's real stance: tall and calm, bat straight up by his back shoulder, a little toe tap with the front foot as the pitcher winds up, and the front foot twists open when he swings
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -862,7 +868,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.78'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.79'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -12034,7 +12040,7 @@ function quitClean() { if (!QUIT_CLEANUP) return; const tryi = f => { try { f();
   tryi(() => { if (CMT) CMT.m.visible = false; }); tryi(() => { trailPts.length = 0; trail.visible = false; });
   ['dust', 'strobe'].forEach(id => tryi(() => { const e = $(id); if (e) { e.hidden = true; e.style.opacity = ''; } }));
   tryi(() => hideBanner()); tryi(() => { if (G.cs) { const C = G.cs; G.cs = null; if (C.music) C.music.stop(); if (C.saved) [hemi.intensity, sun.intensity, fill.intensity] = C.saved; } spot.intensity = 0; });
-  tryi(() => { const c = SFX.ctx(); if (c && c.state === 'suspended') c.resume(); }); tryi(() => { if (window.speechSynthesis) speechSynthesis.cancel(); });
+  tryi(() => { const c = SFX.ctx(); if (c && c.state === 'suspended') c.resume(); }); tryi(() => { const S = window.speechSynthesis; if (S && (S.speaking || S.pending || !(typeof VOICE_SAFETY !== 'undefined' && VOICE_SAFETY))) S.cancel(); });
   tryi(() => { batPivot.visible = true; zoneLines.visible = false; }); }
 tryi0(() => qcTake());
 function tryi0(f) { try { f(); } catch (e) { console.warn(e); } }
@@ -12050,15 +12056,15 @@ function contLabel(cb, g) { if (!CONTINUE_LABEL) return; let who = ''; try { con
   const GOOD = ['samantha', 'daniel', 'karen', 'moira', 'tessa', 'ava', 'evan', 'nathan', 'zoe', 'allison', 'susan', 'tom', 'alex', 'serena', 'arthur', 'martha', 'catherine', 'gordon', 'aaron', 'nicky'];
   const score = v => { const n = (v.name || '') + ' ' + (v.voiceURI || ''); let s = 0; if (/premium/i.test(n)) s += 50; if (/enhanced|siri|natural|neural/i.test(n)) s += 35; if (/google|online/i.test(n)) s += 10; const g = GOOD.findIndex(x => new RegExp('\\b' + x + '\\b', 'i').test(n)); if (g >= 0) s += 30 - g * 0.5; if (/^en[-_]us/i.test(v.lang)) s += 3; if (ROBO.test(n)) s -= 40; return s; };
   window._jokeRe = JOKE; window._voicesRaw = orig;
-  try { S.getVoices = function () { const all = (window._voicesRaw || orig)() || []; const jk = (typeof jokePicks === 'function') ? jokePicks(all) : []; const rest = phone ? all.filter(v => !JOKE.test(v.name || '')).sort((a, b) => score(b) - score(a)) : all.filter(v => !jk.includes(v)); return jk.length ? jk.concat(rest.filter(v => !jk.includes(v))) : rest; }; } catch (e) {} })();
+  try { S.getVoices = function () { const all = (window._voicesRaw || orig)() || []; const jk = (typeof jokePicks === 'function') ? jokePicks(all) : []; const rest = phone ? all.filter(v => !JOKE.test(v.name || '')).sort((a, b) => score(b) - score(a)) : all.filter(v => !jk.includes(v)); const out = jk.length ? jk.concat(rest.filter(v => !jk.includes(v))) : rest; return (typeof voiceOk === 'function') ? out.filter(voiceOk) : out; }; } catch (e) {} })();
 PATCH.unshift(['v1.76', 'quit cleanup, Continue button, phone voices', ['Quitting in the middle of a brawl or a cutscene clears it all: no more frozen players or dust left on the field in your next game', 'The Continue button says it’s your saved game and who’s up, so you can’t mix it up with a new game', 'Phones: the announcers use the best voice on your phone and never the joke voices']]);
 /*G21END*/
 /*G22START*/
 // ================= v1.77 · random joke announcer voices, phone sound watchdog · switches in the "v1.77" script at the top =================
 // ---- JOKE_VOICES: two random joke voices, new ones every game ----
 var JKV = { names: null, key: null };
-function jokePicks(all) { if (!JOKE_VOICES || !window._jokeRe) return []; const jk = all.filter(v => window._jokeRe.test(v.name || '') && /^en/i.test(v.lang || 'en')); if (!jk.length) return [];
-  const key = G.gsKey || 'menu'; if (JKV.key !== key || !JKV.names) { JKV.key = key; const pool = jk.map(v => v.name); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } JKV.names = pool.slice(0, 2); }
+function jokePicks(all) { if (!JOKE_VOICES || !window._jokeRe) return []; const jk = all.filter(v => window._jokeRe.test(v.name || '') && /^en/i.test(v.lang || 'en') && (typeof voiceOk !== 'function' || voiceOk(v))); if (!jk.length) return [];
+  const key = G.gsKey || 'menu'; if (JKV.names && JKV.names.some(n => !jk.find(v => v.name === n))) JKV.names = null; if (JKV.key !== key || !JKV.names) { JKV.key = key; const pool = jk.map(v => v.name); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } JKV.names = pool.slice(0, 2); }
   return JKV.names.map(n => jk.find(v => v.name === n)).filter(Boolean); }
 // ---- PHONE_AUDIO_REVIVE ----
 var REV = { last: -1, stall: 0, need: false, kicked: 0, sess: false };
@@ -12103,6 +12109,41 @@ function luSpotPick(slot) { const old = $('lupick'); if (old) old.remove(); cons
       const g = li.querySelector('.grip'); if (g) li.insertBefore(b, g); else li.appendChild(b); }); } catch (e) { console.warn(e); } return r; }; }
 PATCH.unshift(['v1.78', 'lineup spot button', ['Lineup: every hitter has a button. Tap it, then pick a spot (1st to 9th). Bench guys go right into the lineup and the hitter there sits. Dragging still works']]);
 /*G23END*/
+/*G24START*/
+// ================= v1.79 · More button, voice safety, Ohtani's stance · switches in the "v1.79" script at the top =================
+// ---- MORE_BTN_FIX ----
+if (MORE_BTN_FIX) { const st = document.createElement('style'); st.textContent = `html body.touch.mclean .topright { top: calc(24px + env(safe-area-inset-top, 0px)) !important; }
+html body.touch.mclean #mobmore, html body.touch.mclean #menubtn { min-height: 38px; padding: 7px 16px !important; font-size: 13px !important; touch-action: manipulation; }
+html body.touch.mclean.mopen #mobkeys { top: calc(70px + env(safe-area-inset-top, 0px)) !important; max-height: calc(100vh - 84px); overflow-y: auto; }`; document.head.appendChild(st);
+  const mm = $('mobmore'); if (mm) { let tt = 0; mm.addEventListener('touchend', e => { if (!document.body.classList.contains('touch')) return; e.preventDefault(); tt = Date.now(); mm.click(); }, { passive: false }); } }
+// ---- VOICE_SAFETY: remember voices that don't work on this device ----
+var BADV = (() => { try { return new Set(JSON.parse(localStorage.getItem('bb_badvoice') || '[]')); } catch (e) { return new Set(); } })();
+function voiceOk(v) { return !(VOICE_SAFETY && v && BADV.has(v.name)); }
+function voiceBad(v, why) { if (!VOICE_SAFETY || !v || BADV.has(v.name)) return; BADV.add(v.name); try { localStorage.setItem('bb_badvoice', JSON.stringify([...BADV])); } catch (e) {} if (JKV.names && JKV.names.includes(v.name)) JKV.names = null; console.warn('voice skipped:', v.name, why); }
+(function () { if (!VOICE_SAFETY || !window.speechSynthesis) return; const S = window.speechSynthesis, spk = S.speak.bind(S);
+  try { S.speak = function (u) { try { if (u && u.voice && !voiceOk(u.voice)) { const vs = S.getVoices().filter(v => /^en/i.test(v.lang)); u.voice = vs[0] || null; }
+      const v = u && u.voice, txt = (u && u.text) || ''; if (v && txt.trim().length > 8) { let t0 = 0, done = false; const t1 = performance.now();
+        u.addEventListener('start', () => { t0 = performance.now(); });
+        u.addEventListener('error', e => { done = true; if (!/interrupted|canceled|not-allowed|audio-busy/i.test(e.error || '') && SFX._unl) voiceBad(v, e.error || 'error'); });
+        u.addEventListener('end', () => { done = true; const dur = performance.now() - (t0 || t1); if (dur < Math.min(350, txt.length * 12)) voiceBad(v, 'ended instantly'); });
+        setTimeout(() => { if (!t0 && !done && !S.paused && !document.hidden && !S.speaking && SFX._unl) voiceBad(v, 'never started'); }, 3500); } } catch (e) {} return spk(u); }; } catch (e) {} })();
+// ---- OHTANISWINGFIX: tall, bat straight up, toe tap, front foot twists open ----
+var OHS = { y0: null };
+function ohsFrame(t) { if (!OHTANISWINGFIX || !ohtNow()) return; const a = batter.userData, F = a.legR, B = a.legL; if (OHS.y0 == null) OHS.y0 = F.position.y;
+  const L = G.local; F.position.y = OHS.y0; F.rotation.y = 0; B.rotation.y = 0;
+  if (L === 'aim' || L === 'windup' || (L === 'flight' && !G.swung)) {
+    a.body.position.y = -0.1 + Math.sin(t * 1.4) * 0.015; a.body.rotation.y = 0.05; a.body.rotation.z = 0;
+    B.rotation.z = 0.3; B.rotation.x = -0.04; F.rotation.z = -0.3; F.rotation.x = 0.03;
+    batPivot.rotation.x = -1.25 - 0.32; batPivot.position.y = 4.7 + 0.35; batPivot.rotation.z = Math.sin(t * 1.1) * 0.015;
+    if (L === 'windup' && G.windupT0) { const u = clamp((now() - G.windupT0) / Math.max(0.3, windupDur()), 0, 1); // the toe tap
+      if (u > 0.3 && u < 0.78) { const k = Math.sin(Math.PI * (u - 0.3) / 0.48); F.rotation.z = -0.3 + 0.24 * k; F.position.y = OHS.y0 + 0.38 * k; F.rotation.y = 0.3 * k; F.rotation.x = 0.03 + 0.12 * k; a.body.position.y -= 0.05 * k; batPivot.rotation.x -= 0.06 * k; }
+      else if (u >= 0.78) { F.rotation.z = -0.38; } } // down a touch wider: the stride
+    if (L === 'flight' && !G.swung) F.rotation.z = -0.38; }
+  if (L === 'flight' && G.swung && G.pitch) { const u = clamp((now() - G.flightT0 - G.swingT) / swingAnim(), 0, 1.2), s = Math.min(1, u * 1.6); F.rotation.y = -0.55 * s; F.rotation.z = -0.38; B.rotation.y = 0.75 * s; B.position.y = (B.userData.y0 != null ? B.userData.y0 : (B.userData.y0 = B.position.y)) + 0.12 * s; } // front foot twists open, back foot spins on the toe
+  else if (B.userData.y0 != null) B.position.y = B.userData.y0; }
+{ const _sf24 = stadiumFrame; stadiumFrame = function (t, dt) { _sf24(t, dt); try { ohsFrame(t); } catch (e) {} }; }
+PATCH.unshift(['v1.79', 'More button, announcers, Ohtani', ['Phones: the More and Quit buttons are lower and bigger so a tap always lands', 'Announcers: a voice that doesn’t really work on your phone gets skipped for good, so they don’t go quiet', 'Ohtani bats like the real thing: tall and calm, bat straight up, a little toe tap as the pitcher winds up, and his front foot twists open on the swing']]);
+/*G24END*/
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
