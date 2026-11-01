@@ -813,7 +813,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.68'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.69'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -11705,6 +11705,7 @@ function gfxFrame() { const want = gfxWant(); if (want !== GFX.on) gfxApply(want
 PATCH.unshift(['v1.68', 'Ohtani, Bart Crusher, Better graphics', ['Ohtani is a two-way player now: still the closer in your bullpen, and a hitter on the lineup screen. Bats lefty, nuke power, and every ball he hits plays his sound',
   'New hitter: Bart Crusher. Giant arms, tiny legs, a lightning swing, and everything he hits goes sky high', 'Settings → Graphics: Classic or Better (real shadows, sun rays, glow, richer colors)']]);
 /*G14END*/
+PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
 

@@ -1,10 +1,10 @@
 // BartBall Service Worker – network-first for HTML
-const CACHE_NAME = 'bartball-v1.0.3';
+const CACHE_NAME = 'bartball-v1.0.4';
 
 const PRECACHE_URLS = [
   '/manifest.json',
   '/icon_192x192.png',
-  '/icon_512x512.png'
+  '/icon_1_512x512.png'
   // add other static assets if needed
 ];
 
