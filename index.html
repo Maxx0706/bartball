@@ -820,6 +820,11 @@ const PINPOINT_PITCHING = true;    // Settings → Pitching: Meter or Pinpoint (
 const RHYTHM_BART = true;          // Rhythm Game Bart: a hitter AND a pitcher who stand on dance pads. Every pitch is a rhythm game (arrows scroll up, tap them on the beat): nail it and he crushes it / paints the corner, miss and he slips and falls
 const RHYTHM_BPM = 128;            // how fast the arrows come
 </script>
+<script>
+// ================= v1.72 · true = on, false = how it was =================
+const IOS_DRAG_LOCK = true;        // iPhone: dragging on the screen can't slide the whole page anymore (that made buttons stop lining up with where you tap)
+const SETTINGS_TAP_FIX = true;     // Settings: the newer switches (Graphics, FPS counter, Pitching, Announcers' voices…) light up the option you tap right away
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -827,7 +832,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.71'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.72'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -11891,6 +11896,18 @@ function rhyAimFrame() { if (G.rhyAim && RHY && RHY.who === 'pitch') { G.aim.x =
 PATCH.unshift(['v1.71', 'Rhythm Game Bart', ['New hitter AND pitcher: Rhythm Game Bart. He stands on a dance pad and every pitch is a rhythm game: arrows scroll up, tap them on the beat (arrow keys / D F J K on PC, the 4 buttons on a phone)',
   'Batting: the better your timing, the better his swing. Pitching: the better your timing, the more accurate the throw', 'He dances on the pad the whole time, and if you blow it he slips and falls']]);
 /*G16END*/
+/*G17START*/
+// ================= v1.72 · iPhone drag lock + settings taps · switches in the "v1.72" script at the top =================
+// ---- Settings: every switch shows what you picked as soon as you tap it (SETTINGS_TAP_FIX) ----
+{ const _seg17 = seg; seg = function (id, opts, cur, set) { if (!SETTINGS_TAP_FIX) return _seg17.apply(this, arguments); return _seg17.call(this, id, opts, cur, v => { try { const el = $(id); if (el) [...el.children].forEach((b, i) => b.setAttribute('aria-pressed', opts[i] && opts[i][0] === v ? 'true' : 'false')); } catch (e) {} return set(v); }); }; }
+// ---- iPhone: the page stays put when you drag (IOS_DRAG_LOCK) ----
+(function () { if (!IOS_DRAG_LOCK) return; const s = document.createElement('style'); s.textContent = 'html.dlock, html.dlock body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; }'; document.head.appendChild(s); document.documentElement.classList.add('dlock');
+  const scrollable = el => { for (let n = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) { if (n.tagName === 'INPUT' || n.tagName === 'TEXTAREA' || n.tagName === 'SELECT') return true; const cs = getComputedStyle(n); if ((/(auto|scroll)/.test(cs.overflowY) && n.scrollHeight > n.clientHeight + 1) || (/(auto|scroll)/.test(cs.overflowX) && n.scrollWidth > n.clientWidth + 1)) return true; } return false; };
+  document.addEventListener('touchmove', e => { if (e.touches && e.touches.length > 1) { e.preventDefault(); return; } if (!scrollable(e.target)) e.preventDefault(); }, { passive: false });
+  ['gesturestart', 'gesturechange'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+  const back = () => { if (window.scrollX || window.scrollY) window.scrollTo(0, 0); }; window.addEventListener('scroll', back, { passive: true }); if (window.visualViewport) window.visualViewport.addEventListener('scroll', back, { passive: true }); })();
+PATCH.unshift(['v1.72', 'phone fixes', ['iPhone: dragging on the screen doesn’t slide the page anymore, so the buttons stay where you tap them', 'Settings: Graphics, FPS counter, Pitching and Announcers’ voices light up the option you pick right away']]);
+/*G17END*/
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
