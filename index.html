@@ -846,6 +846,11 @@ const QUIT_CLEANUP = true;         // quitting (or starting a new game) clears e
 const CONTINUE_LABEL = true;       // the menu's Continue button says it's your saved game and who's up, so it can't be mistaken for a new game
 const PHONE_VOICE_PICK = true;     // phones: the announcers use the best voices on the phone (Enhanced / Premium / Siri voices first) and never the joke ones (Zarvox, Bubbles, Jester...)
 </script>
+<script>
+// ================= v1.77 · true = on, false = how it was =================
+const JOKE_VOICES = true;          // every game the two announcers get random joke voices (Zarvox, Bubbles, Jester, Bad News, Trinoids...). Only iPhones / iPads / Macs have them. Anywhere else: the normal voices
+const PHONE_AUDIO_REVIVE = true;   // phones: a watchdog checks the sound is really playing. If the phone left it stuck (it says it's on but nothing comes out), the sound is rebuilt on your next tap. iPhone: the game's sound also plays when the ringer switch is on silent
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -853,7 +858,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.76'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.77'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -2980,6 +2985,7 @@ const SFX = (() => {
   return {
     unlock() { const c = ac(); if (c && !SFX._unl) { try { const b = c.createBuffer(1, 1, 22050), s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(0); SFX._unl = true; } catch (e) {} } }, // (iOS: a silent blip inside a tap unlocks audio for good)
     ctx() { return ac(); },
+    rebuild() { try { if (ctx && ctx.close) ctx.close().catch(() => {}); } catch (e) {} ctx = null; master = null; SFX._unl = false; SFX.unlock(); return ctx; },
     crack(power = 1) { if (!ac()) return; const t = ctx.currentTime; const n = noise(0.25), f = ctx.createBiquadFilter(), g = ctx.createGain(); f.type = 'bandpass'; f.frequency.value = 1800 + power * 900; f.Q.value = 1.2; n.connect(f); f.connect(g); g.connect(master); env(g, t, 0.002, 0.9 * power + 0.2, 0.18); n.start(t); n.stop(t + 0.3);
       const o = ctx.createOscillator(), g2 = ctx.createGain(); o.frequency.setValueAtTime(900, t); o.frequency.exponentialRampToValueAtTime(300, t + 0.08); o.connect(g2); g2.connect(master); env(g2, t, 0.001, 0.35, 0.08); o.start(t); o.stop(t + 0.12); },
     pop() { if (!ac()) return; const t = ctx.currentTime; const n = noise(0.12), f = ctx.createBiquadFilter(), g = ctx.createGain(); f.type = 'lowpass'; f.frequency.value = 900; n.connect(f); f.connect(g); g.connect(master); env(g, t, 0.002, 0.9, 0.09); n.start(t); n.stop(t + 0.15); },
@@ -12034,14 +12040,36 @@ function tryi0(f) { try { f(); } catch (e) { console.warn(e); } }
 function contLabel(cb, g) { if (!CONTINUE_LABEL) return; let who = ''; try { const me = 0, o = Object.assign({}, g, { half: battingIdx(g) === me ? g.half : 1 - g.half }), n = ((o.order[me] % 9) + 9) % 9 + 1; who = ` · #${n} ${batterName(o)} up`; } catch (e) {}
   cb.textContent = `▶ Continue saved game · ${g.half ? 'Bot' : 'Top'} ${g.inning} · ${g.score[0]}-${g.score[1]}${who}`; }
 // ---- PHONE_VOICE_PICK: phones list their best English voices first and the joke voices never ----
-(function () { if (!PHONE_VOICE_PICK || !TOUCH || !window.speechSynthesis) return; const S = window.speechSynthesis, orig = S.getVoices.bind(S);
+(function () { const phone = PHONE_VOICE_PICK && TOUCH; if ((!phone && !(typeof JOKE_VOICES !== 'undefined' && JOKE_VOICES)) || !window.speechSynthesis) return; const S = window.speechSynthesis, orig = S.getVoices.bind(S);
   const JOKE = /\b(albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|deranged|hysterical|pipe organ)\b/i;
   const ROBO = /\b(fred|junior|kathy|ralph|grandma|grandpa|eddy|flo|reed|rocko|sandy|shelley)\b/i;
   const GOOD = ['samantha', 'daniel', 'karen', 'moira', 'tessa', 'ava', 'evan', 'nathan', 'zoe', 'allison', 'susan', 'tom', 'alex', 'serena', 'arthur', 'martha', 'catherine', 'gordon', 'aaron', 'nicky'];
   const score = v => { const n = (v.name || '') + ' ' + (v.voiceURI || ''); let s = 0; if (/premium/i.test(n)) s += 50; if (/enhanced|siri|natural|neural/i.test(n)) s += 35; if (/google|online/i.test(n)) s += 10; const g = GOOD.findIndex(x => new RegExp('\\b' + x + '\\b', 'i').test(n)); if (g >= 0) s += 30 - g * 0.5; if (/^en[-_]us/i.test(v.lang)) s += 3; if (ROBO.test(n)) s -= 40; return s; };
-  try { S.getVoices = function () { const all = orig() || []; const keep = all.filter(v => !JOKE.test(v.name || '')); return keep.slice().sort((a, b) => score(b) - score(a)); }; } catch (e) {} })();
+  window._jokeRe = JOKE; window._voicesRaw = orig;
+  try { S.getVoices = function () { const all = (window._voicesRaw || orig)() || []; const jk = (typeof jokePicks === 'function') ? jokePicks(all) : []; const rest = phone ? all.filter(v => !JOKE.test(v.name || '')).sort((a, b) => score(b) - score(a)) : all.filter(v => !jk.includes(v)); return jk.length ? jk.concat(rest.filter(v => !jk.includes(v))) : rest; }; } catch (e) {} })();
 PATCH.unshift(['v1.76', 'quit cleanup, Continue button, phone voices', ['Quitting in the middle of a brawl or a cutscene clears it all: no more frozen players or dust left on the field in your next game', 'The Continue button says it’s your saved game and who’s up, so you can’t mix it up with a new game', 'Phones: the announcers use the best voice on your phone and never the joke voices']]);
 /*G21END*/
+/*G22START*/
+// ================= v1.77 · random joke announcer voices, phone sound watchdog · switches in the "v1.77" script at the top =================
+// ---- JOKE_VOICES: two random joke voices, new ones every game ----
+var JKV = { names: null, key: null };
+function jokePicks(all) { if (!JOKE_VOICES || !window._jokeRe) return []; const jk = all.filter(v => window._jokeRe.test(v.name || '') && /^en/i.test(v.lang || 'en')); if (!jk.length) return [];
+  const key = G.gsKey || 'menu'; if (JKV.key !== key || !JKV.names) { JKV.key = key; const pool = jk.map(v => v.name); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } JKV.names = pool.slice(0, 2); }
+  return JKV.names.map(n => jk.find(v => v.name === n)).filter(Boolean); }
+// ---- PHONE_AUDIO_REVIVE ----
+var REV = { last: -1, stall: 0, need: false, kicked: 0, sess: false };
+function revPaused() { try { return !!(PAUSE && PAUSE.on); } catch (e) { return false; } }
+function revGesture() { if (!PHONE_AUDIO_REVIVE) return; try { if (!REV.sess && navigator.audioSession) { REV.sess = true; try { navigator.audioSession.type = 'playback'; } catch (e) {} }
+    const c = SFX.ctx(); if (REV.need || (c && (c.state === 'interrupted' || c.state === 'closed'))) { REV.need = false; REV.stall = 0; REV.last = -1; SFX.rebuild(); } } catch (e) {} }
+if (PHONE_AUDIO_REVIVE && TOUCH) {
+  ['touchend', 'pointerup', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, revGesture, { passive: true, capture: true }));
+  setInterval(() => { try { if (document.hidden || revPaused() || !SFX._unl) { REV.last = -1; REV.stall = 0; return; } const c = SFX.ctx(); if (!c) return;
+      if (c.state !== 'running') { REV.stall++; if (REV.stall >= 3) REV.need = true; REV.last = -1; return; }
+      const t = c.currentTime; if (REV.last >= 0 && t - REV.last < 0.05) { REV.stall++; if (REV.stall === 2 && Date.now() - REV.kicked > 4000) { REV.kicked = Date.now(); c.suspend().then(() => c.resume()).catch(() => {}); } if (REV.stall >= 3) REV.need = true; } else { REV.stall = 0; } REV.last = t; } catch (e) {} }, 1000);
+  document.addEventListener('visibilitychange', () => { REV.last = -1; REV.stall = 0; });
+}
+PATCH.unshift(['v1.77', 'joke voices, phone sound', ['Every game the announcers get two random joke voices (iPhone, iPad and Mac have them)', 'Phones: if the sound gets stuck (on but silent), it comes back on your next tap. iPhone: the game’s sound plays even with the ringer switch on silent']]);
+/*G22END*/
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
