@@ -1,0 +1,37 @@
+{
+  "id": "/",
+  "name": "BartBall App",
+  "short_name": "BartBall",
+  "start_url": "https://bartball.pages.dev/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a1124",
+  "theme_color": "#0a1124",
+  "description": "Play Bart Ball in a dedicated window",
+  "icons": [
+    {
+      "src": "/icon_192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon_1_512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon_192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon_1_512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

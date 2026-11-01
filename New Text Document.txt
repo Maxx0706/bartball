@@ -1,0 +1,27 @@
+const DRAKE_FACE = 'https://raw.githubusercontent.com/Maxx0706/f/main/james.jpg';
+
+olor: 0x8d949b
+
+0x7a4a2a
+
+const CLAV_FACE = 'https://raw.githubusercontent.com/Maxx0706/f/main/clav.jpg';
+// TRIPLE_T_FACE / TRIPLE_T_COLOR: Triple T's face (on the front of his cylinder body) and the cylinder's color
+const TRIPLE_T_FACE = 'https://raw.githubusercontent.com/Maxx0706/f/main/tung.webp';
+
+const BEAST_FACE = 'https://raw.githubusercontent.com/Maxx0706/f/main/beast.jpg';
+const BEAST_WALKUP = 'https://github.com/Maxx0706/f/raw/refs/heads/main/beast.mp3';
+const TREE_FACE = 'https://raw.githubusercontent.com/Maxx0706/f/main/tree.jpg';
+const TREE_WALKUP = 'https://github.com/Maxx0706/f/raw/refs/heads/main/tree.mp3';
+const CG_FACE = 'https://raw.githubusercontent.com/Maxx0706/f/main/g5.webp';
+const CG_WALKUP = 'https://github.com/Maxx0706/f/raw/refs/heads/main/g5.mp3';
+const SOPHIE_FACE = 'https://raw.githubusercontent.com/Maxx0706/f/main/sophie.webp';
+const SOPHIE_WALKUP = 'https://github.com/Maxx0706/f/raw/refs/heads/main/sophie.mp3';
+
+
+29: 'Beast', 30: 'Tree', 31: 'CG', 32: 'Sophie' };
+
+const MANAGER_HOODIE = true;
+
+const NO_DOUBT_ONLY = true;
+
+const CLOSE_HR_TROT_FIX = true;

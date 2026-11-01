@@ -1,0 +1,20 @@
+{
+  "name": "BartBall App",
+  "short_name": "BartBall",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "/icon_192x192.jpg",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon_1_512x512.jpg",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

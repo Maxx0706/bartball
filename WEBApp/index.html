@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Install Bart Ball</title>
+<link rel="icon" href="https://raw.githubusercontent.com/Maxx0706/ff/main/icon.jpg">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0a1124">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Lilita+One&display=swap">
+<style>
+:root {
+  --night: #0a1124;
+  --panel: rgba(10, 16, 34, 0.86);
+  --panel-edge: rgba(255, 255, 255, 0.12);
+  --chalk: #f5f1e6;
+  --muted: #a3aec8;
+  --amber: #ffb72b;
+  --grass: #2f9e5b;
+  --red: #d2453c;
+  --display: "Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  --cond: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; margin: 0; }
+[hidden] { display: none !important; }
+body { 
+  background: var(--night); 
+  background-image: radial-gradient(ellipse at center, rgba(10,17,36,.35), rgba(10,17,36,.95));
+  color: var(--chalk); 
+  font-family: var(--cond); 
+  font-size: 17px; 
+  overflow-x: hidden; 
+  user-select: none; 
+  -webkit-user-select: none; 
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+.panel { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 14px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+
+.screen { width: 100%; display: grid; place-items: center; }
+.box { width: min(460px, 100%); padding: 32px 24px 24px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
+
+.logo { text-align: center; }
+.logo h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(48px, 11vw, 72px); line-height: .9; color: var(--amber); letter-spacing: .02em; text-shadow: 0 5px 0 #7a4a00, 0 10px 30px rgba(0,0,0,.6); transform: rotate(-2deg); }
+.logo p { margin: 12px 0 0; color: var(--muted); font-size: 15px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; }
+
+.app-preview { display: flex; align-items: center; gap: 16px; padding: 14px; border-radius: 12px; background: rgba(255,255,255,.04); border: 1px solid var(--panel-edge); }
+.app-preview img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: #223; box-shadow: inset 0 0 0 2px rgba(255,255,255,.2); }
+.app-info { display: flex; flex-direction: column; gap: 2px; }
+.app-title { font-family: var(--display); font-size: 22px; color: var(--chalk); }
+.app-url { font-size: 14px; color: var(--muted); letter-spacing: 0.02em; }
+
+.instructions { font-size: 16px; color: var(--muted); line-height: 1.45; text-align: center; margin: 0; }
+
+.btnrow { display: flex; gap: 12px; margin-top: 4px; }
+.big { flex: 1; font-family: var(--display); font-size: 20px; padding: 12px 18px; border-radius: 12px; border: 0; background: var(--amber); color: #241500; box-shadow: 0 4px 0 #8a5800; transition: transform .1s, filter .15s; text-align: center; text-decoration: none; display: inline-flex; justify-content: center; align-items: center; }
+.big:active { transform: translateY(3px); box-shadow: 0 1px 0 #8a5800; }
+.big.ghost { background: transparent; color: var(--chalk); box-shadow: none; border: 2px solid var(--panel-edge); }
+.big.ghost:hover { background: rgba(255,255,255,.05); }
+
+#manual-box { display: none; padding: 14px; border-radius: 10px; background: rgba(210, 69, 60, 0.12); border: 1px solid rgba(210, 69, 60, 0.3); font-size: 15px; color: #ffb4ab; text-align: center; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+  <div class="screen">
+    <div class="box panel">
+      
+      <div class="logo">
+        <h1>BART BALL</h1>
+        <p>Night Stadium Edition</p>
+      </div>
+
+      <div class="app-preview">
+        <img src="https://raw.githubusercontent.com/Maxx0706/ff/main/icon.jpg" alt="Bart Ball Icon">
+        <div class="app-info">
+          <span class="app-title">BartBall App</span>
+          <span class="app-url">bartball.pages.dev</span>
+        </div>
+      </div>
+
+      <p class="instructions" id="instruction-text">
+        Install Bart Ball to your device for an immersive, dedicated full-screen window experience.
+      </p>
+
+      <div id="manual-box">
+        Automatic prompt unavailable. Open your browser menu (<b>⋮</b> or <b>Share</b>) and select <b>"Install app"</b> or <b>"Add to Home Screen"</b>.
+      </div>
+
+      <div class="btnrow">
+        <button id="install-btn" class="big">Install App</button>
+        <a href="https://bartball.pages.dev" class="big ghost">Play in Browser</a>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  let deferredPrompt;
+  const installBtn = document.getElementById('install-btn');
+  const manualBox = document.getElementById('manual-box');
+  const instructionText = document.getElementById('instruction-text');
+
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
+
+  // Capture install prompt event
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        instructionText.textContent = "Thank you for installing Bart Ball!";
+        installBtn.style.display = 'none';
+      }
+      deferredPrompt = null;
+    } else {
+      manualBox.style.display = 'block';
+    }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    instructionText.textContent = "Bart Ball was successfully installed!";
+    installBtn.style.display = 'none';
+    manualBox.style.display = 'none';
+  });
+</script>
+
+</body>
+</html>
