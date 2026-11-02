@@ -885,6 +885,10 @@ const PACK_PROMO_BB = 500;         // how many Bart Bucks the promo gives
 const PACK_PROMO_END = '2026-11-03T00:10:00Z'; // the promo only shows up until this time (24 hours from when it was added: Nov 2, 2026, 4:10 PM Pacific)
 const MINI_MATCH = true;           // menu: "⚡ Mini Match · 1 inning", a one-inning game vs the CPU in one tap
 </script>
+<script>
+// ================= v1.84 · true = on, false = how it was =================
+const CARD_TILT = true;            // PC: every card turns in 3D to follow your mouse, with a shine that slides across it (like holo trading cards). Phones: drag on the big card to turn it
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -892,7 +896,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.83'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.84'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -12436,7 +12440,7 @@ function ckDraw() { const box = $('ckbox'); if (!box) return; const p = profCur(
   const A = (k, f) => { const b = box.querySelector(`[data-a="${k}"]`); if (b) b.addEventListener('click', f); };
   A('back', () => { CK.open = null; ckDraw(); }); A('mkre', () => mkLoad()); A('grade', () => ckGrade()); A('sell', () => ckSellForm());
   box.querySelectorAll('[data-buyl]').forEach(b => b.addEventListener('click', () => mkBuy(b.dataset.buyl))); box.querySelectorAll('[data-cancel]').forEach(b => b.addEventListener('click', () => mkCancel(b.dataset.cancel)));
-  const tl = box.querySelector('.cktilt'); if (tl) ckTilt(tl); }
+  const tl = box.querySelector('.cktilt'); if (tl && !(typeof CARD_TILT !== 'undefined' && CARD_TILT)) ckTilt(tl); }
 function ckInfo(c) { const cond = ckCond(c), S = CK_SETS[c.set], Pr = CK_PARS[c.par], rare = CK_RARE_PAT[c.pat];
   return `<table><tr><td>Series</td><td>${S.n}</td></tr><tr><td>Parallel</td><td style="color:${Pr.col}">${Pr.n}${c.ser ? ` · #${c.ser}/${Pr.of}` : ''}</td></tr><tr><td>Pattern</td><td>#${c.pat}${rare ? ` · <b style="color:#4fc3f7">★ ${rare}</b>` : ''}</td></tr>
     <tr><td>Wear</td><td>${c.wear.toFixed(4)} · ${cond.wearName}</td></tr><tr><td>Centering</td><td>${cond.center}</td></tr><tr><td>Surface</td><td>${cond.scr.length ? cond.scr.length + ' scratch' + (cond.scr.length > 1 ? 'es' : '') : 'Clean'}</td></tr>
@@ -12506,6 +12510,27 @@ if (MINI_MATCH) { const ref = $('playbot'); if (ref) { const b = document.create
     b.addEventListener('click', () => { const keep = G.innings; G.innings = 1; G.autoMe = null; SFX.unlock(); try { startBot(); } finally { G.innings = keep; } }); const row = $('g4modes'); if (row) row.prepend(b); else ref.after(b); } }
 PATCH.unshift(['v1.83', 'card packs and the Bart Market', ['New: 🃏 Card Packs on the menu. Earn Bart Bucks just by playing, buy packs and rip them open, flip your cards', 'Every player in the game has cards in 5 series (Series 1, Chrome, Retro ’87, Neon Nights, Legends) and 5 parallels (Base, Refractor, Gold /50, Black /10, Superfractal 1/1)', 'Every card is one of a kind, like a CS skin: its own pattern number and wear, off-center print, scratches, corner whitening, edge scuffs and print lines you can actually see. Send one in for grading and it comes back in a slab (1 to 10 GEM MT)', 'The Collection book shows who you’ve got', 'The Bart Market: list your cards for Bart Bucks and buy other players’ cards (needs an account)', 'Trade cards with a friend in the trade window after an online game', 'New: ⚡ Mini Match, a one-inning game vs the CPU in one tap']]);
 /*G28END*/
+/*G29START*/
+// ================= v1.84 · cards turn with the mouse · switch in the "v1.84" script at the top =================
+if (CARD_TILT && CARD_PACKS) { const st = document.createElement('style'); st.textContent = `
+.ckc { transition: transform .35s ease-out, box-shadow .35s; will-change: transform; } .ckc.tilting { transition: transform .06s linear, box-shadow .2s; }
+.ckc::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s; border-radius: inherit; z-index: 5;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.55), rgba(255,255,255,.12) 28%, rgba(0,0,0,.18) 70%); mix-blend-mode: overlay; }
+.ckc.tilting::after { opacity: 1; } .ckc.tilting { box-shadow: var(--sx, 0) var(--sy, 10px) 26px rgba(0,0,0,.55); }
+.ckc.tilting .ckfoil { opacity: .85 !important; background-position: var(--mx, 50%) var(--my, 50%) !important; }
+.ckwrap, .ckslab, #ckrip .ckflip .front { perspective: 800px; }`; document.head.appendChild(st);
+  let cur = null;
+  const turn = (el, x, y) => { const r = el.getBoundingClientRect(), u = clamp((x - r.left) / r.width, 0, 1), v = clamp((y - r.top) / r.height, 0, 1), big = r.width > 180 ? 1 : 0.8;
+    el.classList.add('tilting'); el.style.transform = `perspective(800px) rotateY(${((u - 0.5) * 34 * big).toFixed(2)}deg) rotateX(${((0.5 - v) * 30 * big).toFixed(2)}deg) scale(1.04)`;
+    el.style.setProperty('--mx', (u * 100).toFixed(1) + '%'); el.style.setProperty('--my', (v * 100).toFixed(1) + '%'); el.style.setProperty('--ang', ((u + v) * 180).toFixed(1) + 'deg'); el.style.setProperty('--sx', ((0.5 - u) * 26).toFixed(1) + 'px'); el.style.setProperty('--sy', (8 + (0.5 - v) * 18).toFixed(1) + 'px'); };
+  const rest = el => { if (!el) return; el.classList.remove('tilting'); el.style.transform = ''; };
+  const cardAt = t => { const c = t && t.closest && t.closest('.ckc'); if (!c) return null; const fl = c.closest('.ckflip'); if (fl && !fl.classList.contains('up')) return null; return c; };
+  document.addEventListener('pointermove', e => { if (e.pointerType === 'touch') { if (!e.target.closest || !e.target.closest('.cktilt')) return; } const c = cardAt(e.target); if (c !== cur) { rest(cur); cur = c; } if (c) turn(c, e.clientX, e.clientY); }, { passive: true });
+  document.addEventListener('pointerleave', () => { rest(cur); cur = null; }, true);
+  document.addEventListener('pointerup', e => { if (e.pointerType === 'touch') { rest(cur); cur = null; } }, true);
+  window.addEventListener('blur', () => { rest(cur); cur = null; }); }
+PATCH.unshift(['v1.84', 'cards turn with the mouse', ['PC: every card turns in 3D as you move your mouse over it, with a shine sliding across it. Phones: drag on the big card']]);
+/*G29END*/
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
