@@ -895,6 +895,11 @@ const SEVENTIES_HAIR_FIX = true;   // Seventies Bart's long hair hangs down the 
 const TTS_KEEP_TALKING = true;
 const CARD_CENTER_WIDE = true;     // cards: off-center printing happens more and shows more (it was so slight that almost every card came out 50/50)     // announcers: if the phone is already talking, the game doesn't cut the voice off (iPhones don't always say when a voice starts, so the game thought it hadn't and stopped it after a second or two)
 </script>
+<script>
+// ================= v1.86 · true = on, false = how it was =================
+const ERROR_CARDS = true;          // cards: rare misprints like real error cards (misspelled name, the wrong player's photo, no name, upside-down or mirrored photo, black & white, double print, missing team color). Worth about 8x
+const ERROR_CARD_ODDS = 0.015;     // the chance any card you pull is an error card (0.015 = 1.5%, about 1 in 67)
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -902,7 +907,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.85'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.86'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -12338,20 +12343,20 @@ function ckNew(pack, forceHit) { const P = ckPlayers(), pl = P[Math.floor(Math.r
   const of = CK_PARS[par].of, w = Math.pow(Math.random(), 1.7) * 0.85 + (Math.random() < 0.08 ? Math.random() * 0.15 : 0);
   return { u: 'k' + Date.now().toString(36) + Math.floor(Math.random() * 1e8).toString(36), k: pl.k, set, par, pat: Math.floor(Math.random() * 1000), wear: +clamp(w, 0, 0.999).toFixed(4), cs: Math.floor(Math.random() * 2147483647), t: Math.random() < 0.5 ? 0 : 1, ser: of ? 1 + Math.floor(Math.random() * of) : 0, at: Date.now() }; }
 function ckValue(c) { const pl = ckPlayer(c.k) || { ovr: 70 }, base = { base: 20, ref: 80, gold: 400, black: 1500, one: 8000 }[c.par] || 20, setM = { s1: 1, chrome: 1.3, retro: 1.2, neon: 1.6, leg: 2.5 }[c.set] || 1;
-  const g = c.grade || ckCond(c).grade, gm = c.grade ? ({ 10: 4, 9: 2, 8: 1.3 }[g] || 0.8) : 1; return Math.round(base * setM * (0.6 + pl.ovr / 100) * gm * (CK_RARE_PAT[c.pat] ? 3 : 1)); }
+  const g = c.grade || ckCond(c).grade, gm = c.grade ? ({ 10: 4, 9: 2, 8: 1.3 }[g] || 0.8) : 1; return Math.round(base * setM * (0.6 + pl.ovr / 100) * gm * (CK_RARE_PAT[c.pat] ? 3 : 1) * (typeof ERROR_CARDS !== 'undefined' && ERROR_CARDS && c.err ? 8 : 1)); }
 // ---- drawing a card ----
 function ckArt(c) { const pl = ckPlayer(c.k); if (!pl) return ''; try { return pvImg(pl.kind, c.t || 0, pl.id) || ''; } catch (e) { return ''; } }
 function ckCard(c, o) { o = o || {}; const pl = ckPlayer(c.k) || { name: 'Unknown', pos: '', ovr: 0 }, cond = ckCond(c), tc = (CH[c.t || 0] || CH[0]).css, S = CK_SETS[c.set] || CK_SETS.s1, Pr = CK_PARS[c.par] || CK_PARS.base;
-  const b = 7, L = (b * 2 * cond.lr / 100).toFixed(2), R = (b * 2 - L).toFixed(2), T = (b * 2 * cond.tb / 100 * 0.72).toFixed(2), B = (b * 2 * 0.72 - T).toFixed(2), art = ckArt(c), rare = CK_RARE_PAT[c.pat];
+  const b = 7, L = (b * 2 * cond.lr / 100).toFixed(2), R = (b * 2 - L).toFixed(2), T = (b * 2 * cond.tb / 100 * 0.72).toFixed(2), B = (b * 2 * 0.72 - T).toFixed(2), E = (typeof ERROR_CARDS !== 'undefined' && ERROR_CARDS && c.err) ? c.err : '', art = E === 'photo' ? ckErrArt(c) : ckArt(c), rare = CK_RARE_PAT[c.pat], shownName = E === 'name' ? ckTypo(pl.name, c.cs) : E === 'blank' ? '' : pl.name;
   const flaws = `<svg class="flaws" viewBox="0 0 250 350" preserveAspectRatio="none">${cond.scr.map(s => `<line x1="${s[0].toFixed(1)}" y1="${s[1].toFixed(1)}" x2="${s[2].toFixed(1)}" y2="${s[3].toFixed(1)}" stroke="#fff" stroke-opacity="${s[4].toFixed(2)}" stroke-width="0.7" stroke-linecap="round"/>`).join('')}
     ${cond.corners.map((v, i) => v > 0.08 ? `<circle cx="${i % 2 ? 250 : 0}" cy="${i < 2 ? 0 : 350}" r="${(3 + v * 11).toFixed(1)}" fill="#fff" fill-opacity="${(0.25 + v * 0.55).toFixed(2)}"/>` : '').join('')}
     ${cond.edges.map((v, i) => v > 0.05 ? (i % 2 ? `<line x1="${i === 1 ? 249 : 1}" y1="${60 + i * 37}" x2="${i === 1 ? 249 : 1}" y2="${(60 + i * 37 + 40 + v * 120).toFixed(0)}" stroke="#fff" stroke-opacity="${(0.3 + v * 0.5).toFixed(2)}" stroke-width="2.2" stroke-dasharray="3 4"/>` : `<line x1="${50 + i * 30}" y1="${i ? 349 : 1}" x2="${(50 + i * 30 + 30 + v * 90).toFixed(0)}" y2="${i ? 349 : 1}" stroke="#fff" stroke-opacity="${(0.3 + v * 0.5).toFixed(2)}" stroke-width="2.2" stroke-dasharray="3 4"/>`) : '').join('')}
     ${cond.line ? `<rect x="0" y="${cond.line.y.toFixed(0)}" width="250" height="${cond.line.h.toFixed(1)}" fill="${cond.line.col}" fill-opacity=".55"/>` : ''}${cond.dots.map(d => `<circle cx="${d[0].toFixed(0)}" cy="${d[1].toFixed(0)}" r="${d[2].toFixed(1)}" fill="#111" fill-opacity=".7"/>`).join('')}</svg>`;
-  const inner = `<div class="ckc s-${c.set} p-${c.par}${rare ? ' rarepat' : ''}" style="--tc:${tc};--ang:${(c.pat * 0.36).toFixed(1)}deg;--hue:${(c.pat * 137) % 360}deg;--pc:${Pr.col}">
-    <div class="ckprint" style="left:${L}%;right:${R}%;top:${T}%;bottom:${B}%"><div class="ckframe"><div class="ckart">${art ? `<img src="${art}" alt="">` : `<b>${pl.name.slice(0, 1)}</b>`}</div>
+  const inner = `<div class="ckc s-${c.set} p-${c.par}${rare ? ' rarepat' : ''}${E ? ' err-' + E : ''}" style="--tc:${tc};--ang:${(c.pat * 0.36).toFixed(1)}deg;--hue:${(c.pat * 137) % 360}deg;--pc:${Pr.col}">
+    <div class="ckprint" style="left:${L}%;right:${R}%;top:${T}%;bottom:${B}%"><div class="ckframe"><div class="ckart">${art ? `<img src="${art}" alt="">${E === 'ghost' ? `<img class="ghost" src="${art}" alt="">` : ''}` : `<b>${pl.name.slice(0, 1)}</b>`}</div>
       <div class="ckset">${S.short}</div>${pl.rc ? '<div class="ckrc">RC</div>' : ''}<div class="ckovr">${pl.ovr}</div>
-      <div class="ckplate"><b>${pl.name}</b><i>${pl.pos}${c.ser ? ` · ${c.ser}/${CK_PARS[c.par].of}` : ''}</i></div></div></div><div class="ckfoil"></div>${flaws}</div>`;
-  if (c.grade && !o.raw) { return `<div class="ckslab${o.cls ? ' ' + o.cls : ''}"${o.attr || ''}><div class="cklabel"><span>BART BALL GRADING<br><small>${pl.name} · ${S.short} · ${Pr.n}${rare ? ' · ★' : ''}</small></span><b>${CK_GRADES[c.grade]}<br><em>${c.grade}</em></b></div>${inner}<div class="ckcert">CERT #${String(c.cs).slice(0, 8)}</div></div>`; }
+      <div class="ckplate"><b>${shownName || '&nbsp;'}</b><i>${pl.pos}${c.ser ? ` · ${c.ser}/${CK_PARS[c.par].of}` : ''}</i></div></div></div><div class="ckfoil"></div>${flaws}</div>`;
+  if (c.grade && !o.raw) { return `<div class="ckslab${o.cls ? ' ' + o.cls : ''}"${o.attr || ''}><div class="cklabel"><span>BART BALL GRADING<br><small>${pl.name} · ${S.short} · ${Pr.n}${rare ? ' · ★' : ''}${E ? ' · ERROR' : ''}</small></span><b>${CK_GRADES[c.grade]}<br><em>${c.grade}</em></b></div>${inner}<div class="ckcert">CERT #${String(c.cs).slice(0, 8)}</div></div>`; }
   return `<div class="ckwrap${o.cls ? ' ' + o.cls : ''}"${o.attr || ''}>${inner}</div>`; }
 // ---- the styles ----
 if (CARD_PACKS) { const st = document.createElement('style'); st.textContent = `
@@ -12452,7 +12457,7 @@ function ckInfo(c) { const cond = ckCond(c), S = CK_SETS[c.set], Pr = CK_PARS[c.
     <tr><td>Wear</td><td>${c.wear.toFixed(4)} · ${cond.wearName}</td></tr><tr><td>Centering</td><td>${cond.center}</td></tr><tr><td>Surface</td><td>${cond.scr.length ? cond.scr.length + ' scratch' + (cond.scr.length > 1 ? 'es' : '') : 'Clean'}</td></tr>
     <tr><td>Corners</td><td>${['Sharp', 'Light whitening', 'Whitening', 'Worn', 'Rounded'][Math.min(4, Math.floor(Math.max(...cond.corners) * 5))]}</td></tr><tr><td>Edges</td><td>${Math.max(...cond.edges) < 0.05 ? 'Clean' : Math.max(...cond.edges) < 0.4 ? 'Light scuffs' : 'Scuffed'}</td></tr>
     <tr><td>Print</td><td>${cond.line ? 'Print line' : ''}${cond.line && cond.dots.length ? ', ' : ''}${cond.dots.length ? cond.dots.length + ' print dot' + (cond.dots.length > 1 ? 's' : '') : ''}${!cond.line && !cond.dots.length ? 'Clean' : ''}</td></tr>
-    <tr><td>Grade</td><td>${c.grade ? `<b>${c.grade} ${CK_GRADES[c.grade]}</b>` : 'Raw (not graded)'}</td></tr><tr><td>About worth</td><td>${ckValue(c).toLocaleString()} BB</td></tr></table>`; }
+    ${typeof ERROR_CARDS !== 'undefined' && ERROR_CARDS && c.err ? `<tr><td>Error</td><td><b style="color:#00e5ff">${ckErrName(c)}</b></td></tr>` : ''}<tr><td>Grade</td><td>${c.grade ? `<b>${c.grade} ${CK_GRADES[c.grade]}</b>` : 'Raw (not graded)'}</td></tr><tr><td>About worth</td><td>${ckValue(c).toLocaleString()} BB</td></tr></table>`; }
 function ckTilt(el) { const card = el.querySelector('.ckc'); if (!card) return; const mv = e => { const r = el.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5; card.style.transform = `perspective(700px) rotateY(${x * 22}deg) rotateX(${-y * 22}deg)`; card.style.setProperty('--ang', `${(x + y) * 180}deg`); };
   el.addEventListener('pointermove', mv); el.addEventListener('pointerleave', () => { card.style.transform = ''; }); }
 // ---- buying and ripping a pack ----
@@ -12461,8 +12466,8 @@ function ckBuy(id) { const k = CK_PACKS.find(x => x.id === id), p = profCur(); i
 function ckRip(k, got) { const old = $('ckrip'); if (old) old.remove(); const ov = document.createElement('div'); ov.id = 'ckrip'; ['pointerdown', 'click'].forEach(ev => ov.addEventListener(ev, e => e.stopPropagation())); document.body.appendChild(ov);
   ov.innerHTML = `<div class="hint">Tap the pack to rip it open</div><div class="ckwrapper" style="--pk:${k.col}"><small>BART BALL</small><b>${k.n.replace(' Pack', '').toUpperCase()}</b><small>${k.cards} CARDS</small></div>`; const w = ov.querySelector('.ckwrapper');
   w.addEventListener('click', () => { if (w.dataset.go) return; w.dataset.go = 1; w.classList.add('shake'); SFX.blip(500); setTimeout(() => { w.classList.remove('shake'); w.classList.add('torn'); try { SFX.crack(0.6); } catch (e) {} }, 560); setTimeout(() => ckReveal(ov, got), 1300); }); }
-function ckReveal(ov, got) { ov.innerHTML = `<div class="hint">Tap each card to flip it</div><div class="cksp">${got.map((c, i) => `<div class="ckflip${CK_PARS[c.par].rank >= 1 ? ' hot' : ''}" style="--glow:${CK_PARS[c.par].col};animation-delay:${i * 0.12}s" data-i="${i}"><div class="in"><div class="back">BB</div><div class="front">${ckCard(c)}</div></div></div>`).join('')}</div><div class="ckrbtns"><button type="button" class="ghost" data-r="all">Flip all</button><button type="button" data-r="done">Add to my book</button></div>`;
-  const flip = el => { if (el.classList.contains('up')) return; el.classList.add('up'); const c = got[+el.dataset.i], rk = CK_PARS[c.par].rank; try { if (rk >= 2 || CK_RARE_PAT[c.pat]) SFX.cheer(rk >= 3 ? 1.6 : 1); else SFX.blip(560 + rk * 160); } catch (e) {} };
+function ckReveal(ov, got) { ov.innerHTML = `<div class="hint">Tap each card to flip it</div><div class="cksp">${got.map((c, i) => `<div class="ckflip${CK_PARS[c.par].rank >= 1 || c.err ? ' hot' : ''}" style="--glow:${c.err ? '#00e5ff' : CK_PARS[c.par].col};animation-delay:${i * 0.12}s" data-i="${i}"><div class="in"><div class="back">BB</div><div class="front">${ckCard(c)}</div></div></div>`).join('')}</div><div class="ckrbtns"><button type="button" class="ghost" data-r="all">Flip all</button><button type="button" data-r="done">Add to my book</button></div>`;
+  const flip = el => { if (el.classList.contains('up')) return; el.classList.add('up'); const c = got[+el.dataset.i], rk = CK_PARS[c.par].rank; try { if (c.err) showCall('ERROR CARD! ' + ckErrName(c), true); if (rk >= 2 || CK_RARE_PAT[c.pat] || c.err) SFX.cheer(rk >= 3 ? 1.6 : 1); else SFX.blip(560 + rk * 160); } catch (e) {} };
   ov.querySelectorAll('.ckflip').forEach(el => el.addEventListener('click', () => flip(el)));
   ov.querySelector('[data-r="all"]').addEventListener('click', () => ov.querySelectorAll('.ckflip').forEach((el, i) => setTimeout(() => flip(el), i * 180)));
   ov.querySelector('[data-r="done"]').addEventListener('click', () => { ov.remove(); ckDraw(); }); }
@@ -12537,6 +12542,19 @@ if (CARD_TILT && CARD_PACKS) { const st = document.createElement('style'); st.te
   window.addEventListener('blur', () => { rest(cur); cur = null; }); }
 PATCH.unshift(['v1.84', 'cards turn with the mouse', ['PC: every card turns in 3D as you move your mouse over it, with a shine sliding across it. Phones: drag on the big card']]);
 /*G29END*/
+/*G30START*/
+// ================= v1.86 · error cards · switch in the "v1.86" script at the top =================
+const CK_ERRS = { name: 'Misspelled name', photo: 'Wrong photo', blank: 'No name printed', flip: 'Upside-down photo', mirror: 'Mirrored photo', bw: 'Missing color (black & white photo)', ghost: 'Double print', nocolor: 'Missing team color' };
+function ckErrArt(c) { const P = ckPlayers(), me = P.findIndex(x => x.k === c.k); let i = (c.cs >>> 3) % P.length; if (i === me) i = (i + 1) % P.length; const o = P[i]; try { return pvImg(o.kind, c.t || 0, o.id) || ''; } catch (e) { return ''; } }
+function ckErrWho(c) { const P = ckPlayers(), me = P.findIndex(x => x.k === c.k); let i = (c.cs >>> 3) % P.length; if (i === me) i = (i + 1) % P.length; return P[i].name; }
+function ckTypo(name, cs) { const s = String(name || ''); if (s.length < 3) return s + s.slice(-1); const r = ckRng(cs ^ 0x5bd1e995), i = 1 + Math.floor(r() * (s.length - 2)), k = Math.floor(r() * 3), ch = s.split('');
+  if (k === 0 && ch[i] !== ' ' && ch[i + 1] && ch[i + 1] !== ' ') { [ch[i], ch[i + 1]] = [ch[i + 1], ch[i]]; } else if (k === 1) { ch.splice(i, 0, ch[i]); } else { ch.splice(i, 1); } const out = ch.join(''); return out === s ? s.slice(0, -1) : out; }
+function ckErrName(c) { return c.err === 'photo' ? `Wrong photo (that’s ${ckErrWho(c)})` : c.err === 'name' ? `Misspelled name (“${ckTypo((ckPlayer(c.k) || {}).name, c.cs)}”)` : (CK_ERRS[c.err] || 'Misprint'); }
+{ const _cn30 = ckNew; ckNew = function () { const c = _cn30.apply(this, arguments); try { if (ERROR_CARDS && Math.random() < ERROR_CARD_ODDS) { const ks = Object.keys(CK_ERRS); c.err = ks[Math.floor(Math.random() * ks.length)]; } } catch (e) {} return c; }; }
+if (ERROR_CARDS && CARD_PACKS) { const st = document.createElement('style'); st.textContent = `.err-flip .ckart img { transform: rotate(180deg); } .err-mirror .ckart img { transform: scaleX(-1); } .err-bw .ckart img { filter: grayscale(1) contrast(1.1); } .err-nocolor .ckframe { background: #8d8d8d !important; } .err-nocolor .ckplate { background: rgba(0,0,0,.35) !important; }
+.ckart img.ghost { position: absolute; inset: 0; opacity: .38; transform: translate(6%, -3%); mix-blend-mode: multiply; } .err-blank .ckplate b { min-height: 1.1em; }`; document.head.appendChild(st); }
+PATCH.unshift(['v1.86', 'error cards', ['Error cards: rare misprints like the real thing (misspelled name, the wrong player’s photo, no name, upside-down or mirrored photo, black & white, double print, missing team color). About 1 in 67 cards, worth about 8x. They glow cyan before you flip them']]);
+/*G30END*/
 PATCH.unshift(['v1.85', 'fixes', ['Seventies Bart’s hair hangs down his back instead of over his face', 'Phones: the announcers don’t get cut off a second into a line', 'Cards: off-center printing shows up more']]);
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
