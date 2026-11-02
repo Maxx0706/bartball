@@ -936,6 +936,11 @@ const BAT_WEAR = true;             // bat skins have a float (Factory New to Bat
 const MORE_GOLD = true;            // more ★ gold finishes: Gamma Doppler (+ the Emerald), Opal, Slaughter, Lore, Autotronic, Ultraviolet, Damascus Steel, Bright Water, Freehand, Night, Rust Coat
 const GOLD_QMARK = true;           // the case spinner shows gold items as a gold ★ ? (Rare Special Item) until you land on one, like CS2
 </script>
+<script>
+// ================= v1.93 · true = on, false = how it was =================
+const CODES_ON = true;             // menu: "🎟 Codes", type a code to get free stuff (each code works once per profile)
+const RELEASE_CODE = true;         // the code RELEASE gives the ★ Release Day bat: light blue, and Barts rain off it (Bart, not Bart Jr)
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -943,7 +948,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.92'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.93'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -12901,6 +12906,46 @@ var GQ = { on: false };
 { const _oc35b = openCase; openCase = function () { GQ.on = true; try { return _oc35b.apply(this, arguments); } finally { GQ.on = false; } }; }
 PATCH.unshift(['v1.92', 'inspect your bats', ['Every bat skin has a float (Factory New to Battle-Scarred) and a pattern number, like CS2. Worn bats show scratches and chips where the wood shows through, on your actual bat', '🔍 Inspect: spin your bat in 3D, zoom in, see the float bar and the pattern. Chase the Blue Gem, the full Fade and the centered Crimson Web', 'Low floats and special patterns are worth a lot more', 'More ★ gold finishes: Gamma Doppler (and the Emerald), Opal, Slaughter, Lore, Autotronic, Ultraviolet, Damascus Steel, Bright Water, Freehand, Night, Rust Coat', 'Opening a case: gold items show as a gold ★ ? in the strip until you land on one']]);
 /*G35END*/
+/*G36START*/
+// ================= v1.93 · 🎟 Codes, and the Release bat (it rains Barts) · switches in the "v1.93" script at the top =================
+ITEMS.push({ id: 'xRel', k: 'bat', r: 'g', n: '★ Release Day', c: 0xffffff, e: 0x0b2f4a, pat: ['#8fd3ff'], rain: true, scroll: -0.18, set: 'code', code: true });
+const CODES = { RELEASE: { item: 'xRel', msg: 'Thanks for playing Bart Ball! Here’s the ★ Release Day bat. It rains Barts.' } };
+// codes-only stuff never comes out of a case
+{ const _rc36 = rollCase; rollCase = function (cs) { let it = _rc36.apply(this, arguments); for (let k = 0; k < 20 && it && it.code; k++) it = _rc36.apply(this, arguments); return it; }; }
+// the Release bat's paint: light blue with little Barts falling down it
+var RAIN = { tex: null, img: null };
+function rainTex() { if (RAIN.tex) return RAIN.tex; const c = document.createElement('canvas'); c.width = 128; c.height = 512; const x = c.getContext('2d'), t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; RAIN.tex = t;
+  const draw = () => { const g = x.createLinearGradient(0, 0, 128, 0); g.addColorStop(0, '#6cc4ff'); g.addColorStop(0.5, '#b8e6ff'); g.addColorStop(1, '#6cc4ff'); x.fillStyle = g; x.fillRect(0, 0, 128, 512); const r = ckRng(424242);
+    for (let i = 0; i < 22; i++) { const px = 8 + r() * 112, py = r() * 512, s = 18 + r() * 14; x.strokeStyle = 'rgba(255,255,255,.55)'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(px + s / 2, py - 14); x.lineTo(px + s / 2, py - 2); x.stroke(); if (RAIN.img && RAIN.img.complete) { x.save(); x.beginPath(); x.arc(px + s / 2, py + s / 2, s / 2, 0, Math.PI * 2); x.clip(); x.drawImage(RAIN.img, px, py, s, s); x.restore(); } else { x.fillStyle = '#ffd23f'; x.beginPath(); x.arc(px + s / 2, py + s / 2, s / 2, 0, Math.PI * 2); x.fill(); } }
+    t.needsUpdate = true; };
+  RAIN.img = new Image(); RAIN.img.onload = draw; RAIN.img.src = FACE_BART; draw(); return t; }
+{ const _bt36 = batSkinTex; batSkinTex = function (it) { if (it && it.rain) return rainTex(); return _bt36.apply(this, arguments); }; }
+if (typeof bwTex === 'function') { const _bw36 = bwTex; bwTex = function (it) { if (it && it.rain) return rainTex(); return _bw36.apply(this, arguments); }; }
+// ...and Barts actually fall off the bat
+var RAINP = { pool: null, next: 0 };
+function rainFrame(t, dt) { if (!RELEASE_CODE) return; const it = G.gs && !['menu', 'lobby', 'prelobby'].includes(G.local) ? sideBatSkin(battingIdx(G.gs)) : null, on = !!(it && it.rain && batter.visible && batMesh.visible);
+  if (!RAINP.pool) { if (!on) return; const mat = new THREE.SpriteMaterial({ map: faceTex[0], transparent: true, depthWrite: false }); RAINP.pool = Array.from({ length: 24 }, () => { const s = new THREE.Sprite(mat.clone()); s.visible = false; s.scale.setScalar(0.38); scene.add(s); return { s, v: new THREE.Vector3(), life: 0 }; }); }
+  const w = new THREE.Vector3(); if (on && t > RAINP.next) { RAINP.next = t + 0.16; const P = RAINP.pool.find(q => q.life <= 0); if (P) { batMesh.localToWorld(w.set(0, (Math.random() - 0.5) * 2.6, 0)); P.s.position.copy(w); P.v.set((Math.random() - 0.5) * 0.8, 0.4 + Math.random() * 0.6, (Math.random() - 0.5) * 0.8); P.life = 1.4; P.s.visible = true; P.s.material.rotation = Math.random() * 6; } }
+  RAINP.pool.forEach(q => { if (q.life <= 0) { q.s.visible = false; return; } q.life -= dt; q.v.y -= 7 * dt; q.s.position.addScaledVector(q.v, dt); q.s.material.rotation += dt * 3; q.s.material.opacity = Math.min(1, q.life * 1.5); if (q.s.position.y < 0.1) q.life = 0; }); }
+{ const _sf36 = stadiumFrame; stadiumFrame = function (t, dt) { _sf36(t, dt); try { rainFrame(t, dt || 0.016); } catch (e) {} }; }
+// its little picture in the Locker rains too
+{ const _it36 = itemTile; itemTile = function (it) { let h = _it36.apply(this, arguments); try { if (it && it.rain) h = h.replace('<i class="batic"', '<i class="batic ga-rain"'); } catch (e) {} return h; }; }
+{ const st = document.createElement('style'); st.textContent = `.batic.ga-rain { background: url(${FACE_BART}) 0 0 / 14px 14px repeat-x, url(${FACE_BART}) 7px 0 / 14px 14px repeat-x, linear-gradient(90deg, #6cc4ff, #b8e6ff, #6cc4ff) !important; animation: rainb 1.2s linear infinite !important; box-shadow: 0 0 10px #8fd3ff; } @keyframes rainb { from { background-position: 0 -14px, 7px -7px, 0 0; } to { background-position: 0 14px, 7px 21px, 0 0; } }
+#codebox { position: fixed; inset: 0; z-index: 97; display: flex; align-items: center; justify-content: center; background: rgba(4,6,14,.75); padding: 16px; } #codebox .panel { max-width: 380px; width: 100%; padding: 18px 20px; text-align: center; } #codebox input { width: 100%; box-sizing: border-box; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--panel-edge); background: rgba(0,0,0,.35); color: #fff; font: inherit; font-size: 18px; text-align: center; letter-spacing: .12em; text-transform: uppercase; margin: 8px 0; } #codebox .msg { min-height: 1.4em; margin: 4px 0 8px; }`; document.head.appendChild(st); }
+// ---- the 🎟 Codes window ----
+function codesOpen() { if (!CODES_ON) return; if (!SAVE_ON()) { showCall('Codes need a profile (Profile & settings)', false); return; } SFX.unlock(); const old = $('codebox'); if (old) old.remove(); const ov = document.createElement('div'); ov.id = 'codebox'; ['pointerdown', 'click', 'keydown'].forEach(ev => ov.addEventListener(ev, e => e.stopPropagation()));
+  ov.innerHTML = `<div class="panel"><div style="font-size:38px">🎟</div><h2 style="margin:4px 0">Redeem a code</h2><input id="rcodein" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24"><div class="msg note" id="rcodemsg"></div><div class="cobtns" style="justify-content:center"><button type="button" class="big" id="rcodego">Redeem</button><button type="button" class="big ghost" id="rcodex">Close</button></div></div>`;
+  document.body.appendChild(ov); const inp = ov.querySelector('#rcodein'), msg = ov.querySelector('#rcodemsg'); setTimeout(() => inp.focus(), 50);
+  const go = () => { const code = String(inp.value || '').trim().toUpperCase().replace(/\s+/g, ''), C = CODES[code], p = profCur(); p.codes = p.codes || {};
+    if (!code) return; if (!C || (code === 'RELEASE' && !RELEASE_CODE)) { msg.textContent = 'That code doesn’t work.'; msg.style.color = '#ff8a80'; SFX.blip(300); return; }
+    if (p.codes[code]) { msg.textContent = 'You already used that one.'; msg.style.color = '#ffb72b'; return; }
+    p.codes[code] = Date.now(); let u = null; if (C.item) { u = invAdd(p, C.item); const e = invOf(p).find(x => x.u === u); if (e) { e.fl = 0.000001 + Math.random() * 0.01; } } if (C.bb) p.bb = bbOf(p) + C.bb; if (C.coins) p.coins = coinsOf(p) + C.coins; try { profSave(); } catch (e) {}
+    const it = C.item && itemById(C.item); ov.querySelector('.panel').innerHTML = `<div style="font-size:38px">🎉</div><h2 style="margin:4px 0">Code redeemed!</h2><p>${C.msg || ''}</p>${it ? `<div style="display:flex;justify-content:center;margin:8px 0">${itemTile(it)}</div>` : ''}<div class="cobtns" style="justify-content:center">${it && it.k === 'bat' ? '<button type="button" class="big" id="rcodeeq">Equip it</button>' : ''}${it && it.k === 'bat' && typeof batInspect === 'function' ? '<button type="button" class="big ghost" id="rcodeins">🔍 Inspect</button>' : ''}<button type="button" class="big ghost" id="rcodex2">Close</button></div>`;
+    try { SFX.cheer(1); } catch (e) {} const eq = ov.querySelector('#rcodeeq'); if (eq) eq.addEventListener('click', () => { p.eq.bat = u; profSave(); eq.textContent = 'Equipped ✓'; }); const ins = ov.querySelector('#rcodeins'); if (ins) ins.addEventListener('click', () => batInspect(u)); ov.querySelector('#rcodex2').addEventListener('click', () => ov.remove()); };
+  ov.querySelector('#rcodego').addEventListener('click', go); inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); }); ov.querySelector('#rcodex').addEventListener('click', () => ov.remove()); ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); }); }
+if (CODES_ON) { const ref = $('tcbtn') || $('ckbtn') || $('cabbtn'); if (ref) { const b = document.createElement('button'); b.type = 'button'; b.className = 'big alt'; b.id = 'codebtn'; b.textContent = '🎟 Codes'; b.addEventListener('click', codesOpen); ref.after(b); } }
+PATCH.unshift(['v1.93', 'codes', ['🎟 Codes on the menu: redeem codes for free stuff', 'Code RELEASE: the ★ Release Day bat, light blue, and it rains Barts (they fall off your bat while you hit)']]);
+/*G36END*/
 PATCH.unshift(['v1.85', 'fixes', ['Seventies Bart’s hair hangs down his back instead of over his face', 'Phones: the announcers don’t get cut off a second into a line', 'Cards: off-center printing shows up more']]);
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
