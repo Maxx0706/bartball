@@ -889,6 +889,11 @@ const MINI_MATCH = true;           // menu: "⚡ Mini Match · 1 inning", a one-
 // ================= v1.84 · true = on, false = how it was =================
 const CARD_TILT = true;            // PC: every card turns in 3D to follow your mouse, with a shine that slides across it (like holo trading cards). Phones: drag on the big card to turn it
 </script>
+<script>
+// ================= v1.85 · true = on, false = how it was =================
+const SEVENTIES_HAIR_FIX = true;   // Seventies Bart's long hair hangs down the back of his head (it was turned around and covered his face, which you could see on his card and from the pitcher's view)
+const TTS_KEEP_TALKING = true;     // announcers: if the phone is already talking, the game doesn't cut the voice off (iPhones don't always say when a voice starts, so the game thought it hadn't and stopped it after a second or two)
+</script>
 <canvas id="scene" aria-label="Baseball field"></canvas>
 <script>
 const LOADING_BAR = true;   // true = a loading screen with a progress bar covers everything until the game is ready (phone + PC). false = how it was (no loading screen)
@@ -896,7 +901,7 @@ const ROTATE_ICON = true;
 const LU_NEXT_FIX = true;   // true = the hitter cards' ratings (the little numbers) don't poke through the Next button on the lineup screen. false = how it was
 try { if (LU_NEXT_FIX) document.documentElement.classList.add('lunz'); } catch (e) {}
 const SHOW_VERSION = true;  // true = a small version number in the bottom-left corner of the main menu. false = none
-const GAME_VERSION = 'v1.84'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
+const GAME_VERSION = 'v1.85'; // change this whenever you upload a new build, so you and your friends can check you're on the same one
 document.addEventListener('DOMContentLoaded', function () { try { if (!SHOW_VERSION) return; var m = document.getElementById('menu'); if (!m) return; var v = document.createElement('div'); v.id = 'verno'; v.textContent = GAME_VERSION;
   v.style.cssText = 'position:fixed;left:max(12px, env(safe-area-inset-left));bottom:max(10px, env(safe-area-inset-bottom));z-index:5;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.08em;color:var(--muted);opacity:.75;pointer-events:none;'; m.appendChild(v); } catch (e) {} });   // true = on a phone held upright, show a spinning phone icon instead of the "Turn your phone sideways" words. false = the words
 </script>
@@ -10622,7 +10627,7 @@ function g5Look(m, key, isBatter) { const u = m.userData; if (!u || !u.body) ret
     case 'dreads': { hideCap(); const g = mk('dreads', () => { const g = new THREE.Group(), hm = M(0x2b1a10); const top = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), hm); top.position.y = 0.1; g.add(top);
         for (let i = 0; i < 18; i++) { const a = Math.PI * 0.15 + i / 18 * Math.PI * 1.7, d = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 2.0, 5), hm); d.position.set(Math.sin(a) * 0.92, -0.8, Math.cos(a) * 0.92 - 0.1); d.rotation.x = Math.cos(a) * -0.15; d.rotation.z = Math.sin(a) * 0.15; if (Math.cos(a) > 0.6) d.scale.y = 0.001; g.add(d); } head.add(g); return g; }); g.visible = true; jer(0x2e7d32); break; }
     case 'seventies': { hideCap(); const g = mk('70s', () => { const g = new THREE.Group(), hm = M(0x3e2414); const hair = new THREE.Mesh(new THREE.SphereGeometry(1.12, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.62), hm); hair.position.set(0, 0.12, -0.08); hair.scale.set(1.08, 1, 1.05); g.add(hair);
-        const back = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 0.95, 1.2, 14, 1, true, Math.PI * 0.6, Math.PI * 0.8), hm); back.position.set(0, -0.45, -0.05); back.rotation.y = Math.PI; g.add(back); const st = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.18, 0.14), hm); st.position.set(0, -0.28, 0.93); g.add(st); [-1, 1].forEach(s => { const e = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.45, 0.12), hm); e.position.set(s * 0.45, -0.48, 0.86); g.add(e); }); head.add(g); return g; }); g.visible = true; jer(0xd4a017); break; }
+        const back = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 0.95, 1.2, 14, 1, true, Math.PI * 0.6, Math.PI * 0.8), hm); back.position.set(0, -0.45, -0.05); back.rotation.y = (typeof SEVENTIES_HAIR_FIX !== 'undefined' && SEVENTIES_HAIR_FIX) ? 0 : Math.PI; g.add(back); const st = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.18, 0.14), hm); st.position.set(0, -0.28, 0.93); g.add(st); [-1, 1].forEach(s => { const e = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.45, 0.12), hm); e.position.set(s * 0.45, -0.48, 0.86); g.add(e); }); head.add(g); return g; }); g.visible = true; jer(0xd4a017); break; }
     case 'cranks': jer(0x7b1fa2); cap(0x4a148c); mk('pick', () => { const g = new THREE.Group(); const h = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.8, 6), M(0x8d6e63)); h.position.y = -0.9; g.add(h); const hd = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 0.2), M(0x00b0ff)); hd.position.y = -1.8; g.add(hd); g.position.set(0, -0.2, -0.6); g.rotation.x = 0.4; u.body.add(g); return g; }).visible = !isBatter; break;
   } }
 // ---- set up the batter when he steps in ----
@@ -11581,7 +11586,7 @@ function ttsOnline(who, text, fin) { try { const a = tts3Audio(); a.onended = ()
         const retry = () => { if (VR && !plain && u.voice) { try { if (typeof voiceBad === 'function') voiceBad(u.voice, 'did not talk'); S.cancel(); } catch (e) {} setTimeout(() => go(true), 120); return true; } return false; }; u.lang = (u.voice && u.voice.lang) || 'en-US'; u.pitch = CALLERS[who].pitch; u.rate = CALLERS[who].rate; u.volume = 1;
         u.onstart = () => { if (id === att) started = true; }; u.onend = () => { if (id !== att) return; ended = true; setTimeout(fin, 250); }; u.onerror = () => { if (id !== att) return; ended = true; if (!started && mode === 'on') { if (retry()) return; TTS3.broken = true; ttsOnline(who, text, fin); } else fin(); };
         (window._ttsKeep = window._ttsKeep || []).push(u); if (window._ttsKeep.length > 6) window._ttsKeep.shift(); if (S.paused) S.resume(); S.speak(u);
-        setTimeout(() => { if (id !== att) return; if (!started && !ended && mode === 'on') { if (retry()) return; TTS3.broken = true; try { S.cancel(); } catch (e) {} ttsOnline(who, text, fin); } }, VR ? 2200 : 1600); } catch (e) { if (mode === 'on') ttsOnline(who, text, fin); else fin(); } };
+        setTimeout(() => { if (id !== att) return; if (typeof TTS_KEEP_TALKING !== 'undefined' && TTS_KEEP_TALKING && (S.speaking || S.pending)) { started = true; return; } if (!started && !ended && mode === 'on') { if (retry()) return; TTS3.broken = true; try { S.cancel(); } catch (e) {} ttsOnline(who, text, fin); } }, VR ? 2200 : 1600); } catch (e) { if (mode === 'on') ttsOnline(who, text, fin); else fin(); } };
     setTimeout(go, S.speaking || S.pending ? 160 : 70); }; }
 { const _bt12 = boothTalk; boothTalk = function () { try { if (TTS3.a && !TTS3.a.paused) TTS3.a.pause(); } catch (e) {} return _bt12.apply(this, arguments); }; }
 { const _tm12 = toMenu; toMenu = function () { try { if (TTS3.a) TTS3.a.pause(); } catch (e) {} return _tm12.apply(this, arguments); }; }
@@ -12318,7 +12323,7 @@ const ckPlayer = k => ckPlayers().find(x => x.k === k);
 // ---- a card's look and condition all come from its numbers (like a CS skin's pattern and float) ----
 function ckRng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function ckCond(c) { const r = ckRng(c.cs || 1), g = () => (r() + r() + r() - 1.5) / 1.5; const w = c.wear;
-  const lr = clamp(50 + g() * 7, 36, 64), tb = clamp(50 + g() * 6, 38, 62);
+  const cw = (typeof SEVENTIES_HAIR_FIX !== 'undefined') ? 2 : 1, lr = clamp(50 + g() * 7 * cw, 36, 64), tb = clamp(50 + g() * 6 * cw, 38, 62);
   const scr = []; const ns = Math.floor(w * 9 + r() * 1.6 - 0.4); for (let i = 0; i < ns; i++) { const x = 20 + r() * 210, y = 20 + r() * 310, l = 12 + r() * 60 * (0.4 + w), a = r() * Math.PI; scr.push([x, y, x + Math.cos(a) * l, y + Math.sin(a) * l, 0.25 + r() * 0.45]); }
   const corners = [0, 1, 2, 3].map(() => clamp(w * 1.6 * (0.4 + r()), 0, 1)), edges = [0, 1, 2, 3].map(() => clamp(w * 1.4 * (0.3 + r()) - 0.15, 0, 1));
   const line = r() < 0.045 ? { y: 60 + r() * 200, h: 0.8 + r() * 1.2, col: ['#00bcd4', '#e91e63', '#ffeb3b'][Math.floor(r() * 3)] } : null, dots = r() < 0.12 ? Array.from({ length: 1 + Math.floor(r() * 3) }, () => [40 + r() * 170, 50 + r() * 200, 0.8 + r() * 1.6]) : [];
@@ -12531,6 +12536,7 @@ if (CARD_TILT && CARD_PACKS) { const st = document.createElement('style'); st.te
   window.addEventListener('blur', () => { rest(cur); cur = null; }); }
 PATCH.unshift(['v1.84', 'cards turn with the mouse', ['PC: every card turns in 3D as you move your mouse over it, with a shine sliding across it. Phones: drag on the big card']]);
 /*G29END*/
+PATCH.unshift(['v1.85', 'fixes', ['Seventies Bart’s hair hangs down his back instead of over his face', 'Phones: the announcers don’t get cut off a second into a line']]);
 PATCH.unshift(['v1.69', 'testtest123', ['testtest123: this update was published straight from Claude through GitHub']]);
 
 
